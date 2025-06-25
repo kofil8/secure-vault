@@ -14,41 +14,6 @@ const forgotPassword = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
-const resendOtpRest = catchAsync(async (req: Request, res: Response) => {
-  const payload = req.body;
-  const result = await UserServices.resendOtpRest(payload);
-
-  sendResponse(res, {
-    statusCode: httpStatus.OK,
-    message: 'OTP Resend successfully, please check your email',
-    data: result,
-  });
-});
-
-const verifyOtp = catchAsync(async (req: Request, res: Response) => {
-  const email = req.body.email;
-  const otp = req.body.otp;
-  const result = await UserServices.verifyOtp({ email, otp });
-
-  sendResponse(res, {
-    statusCode: httpStatus.OK,
-    message: 'OTP verified successfully, please login for further process',
-    data: result,
-  });
-});
-
-const ResetOtpVerify = catchAsync(async (req: Request, res: Response) => {
-  const email = req.body.email;
-  const otp = req.body.otp;
-  const result = await UserServices.verifyResetOtp({ email, otp });
-
-  sendResponse(res, {
-    statusCode: httpStatus.OK,
-    message: 'OTP verified successfully for reset password',
-    data: result,
-  });
-});
-
 const resetPassword = catchAsync(async (req: Request, res: Response) => {
   const password = req.body.password;
   const accessToken = req.headers.authorization as string;
