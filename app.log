@@ -1,0 +1,5 @@
+{"level":"\u001b[32minfo\u001b[39m","message":"{\"method\":\"GET\",\"url\":\"/\",\"status\":\"200\",\"responseTime\":\"5.057\"}","timestamp":"2025-06-25T05:40:00.651Z"}
+{"level":"\u001b[32minfo\u001b[39m","message":"{\"method\":\"GET\",\"url\":\"/favicon.ico\",\"status\":\"404\",\"responseTime\":\"0.420\"}","timestamp":"2025-06-25T05:40:01.484Z"}
+{"level":"\u001b[32minfo\u001b[39m","message":"{\"method\":\"GET\",\"url\":\"/\",\"status\":\"304\",\"responseTime\":\"1.074\"}","timestamp":"2025-06-25T05:40:02.798Z"}
+{"level":"\u001b[32minfo\u001b[39m","message":"{\"method\":\"GET\",\"url\":\"/\",\"status\":\"304\",\"responseTime\":\"0.360\"}","timestamp":"2025-06-25T05:40:03.551Z"}
+{"level":"\u001b[32minfo\u001b[39m","message":"{\"method\":\"GET\",\"url\":\"/\",\"status\":\"304\",\"responseTime\":\"2.193\"}","timestamp":"2025-06-25T05:40:25.452Z"}
