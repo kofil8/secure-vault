@@ -8,6 +8,7 @@
     "dev": "ts-node-dev --respawn --transpile-only src/server.ts",
     "watch-prisma": "chokidar 'prisma/schema.prisma' -c 'npx prisma db push",
     "build": "tsc",
+    "generate": "ts-node src/generate-module.ts",
     "postinstall": "prisma generate",
     "schema-bodlaichi": "npm run  postinstall",
     "lint": "eslint 'src/**/*.{ts,tsx}'",
@@ -50,6 +51,7 @@
     "typescript-eslint": "^8.26.0"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.835.0",
     "@prisma/client": "^6.4.1",
     "ajv": "^8.17.1",
     "axios": "^1.10.0",

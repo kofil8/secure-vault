@@ -1,94 +1,155 @@
 import { Request, Response } from 'express';
 import httpStatus from 'http-status';
-import pick from '../../../shared/pick';
-import catchAsync from '../../../utils/catchAsync';
-import sendResponse from '../../../utils/sendResponse';
-import { DonationServices, Filters } from './file.service';
+import catchAsync from '../../utils/catchAsync';
+import { fileService } from './file.service';
+import sendResponse from '../../utils/sendResponse';
+import pick from '../../../helpars/pick';
+import { fileType } from '@prisma/client';
 
-const createDonation = catchAsync(async (req: Request, res: Response) => {
-  const id = req.user.id;
-  const payload = req.body.bodyData;
-  const files = req.files as any;
-  const result = await DonationServices.createDonationIntoDB(
-    id,
-    payload,
-    files,
-  );
+// Create a new file
+const createFile = catchAsync(async (req: Request, res: Response) => {
+  const payload = req.body;
+  const userId = req.user.id;
+  payload.userId = userId;
+  const file = await fileService.createFile(payload);
 
   sendResponse(res, {
     statusCode: httpStatus.CREATED,
-    message: 'Donation created successfully',
-    data: result,
+    success: true,
+    message: 'File uploaded successfully',
+    data: file,
   });
 });
 
-const getAllDonations = catchAsync(async (req: Request, res: Response) => {
-  const paginationOptions = pick(req.query, [
-    'page',
-    'limit',
-    'sortBy',
-    'sortOrder',
-  ]);
-  const filters = pick(req.query, [
-    'searchTerm',
-    'category',
-    'subCategory',
-    'condition',
-  ]);
-  const result = await DonationServices.getAllDonationsFromDB(
-    paginationOptions,
-    filters as Filters,
-  );
+// Get all files (non-deleted)
+const getAllFiles = catchAsync(async (req: Request, res: Response) => {
+  const { trash, filetype, isFavourite, searchTerm } = req.query || {};
+  const paginations = pick(req.query, ['page', 'limit', 'sortBy', 'sortOrder']);
+
+  const files = await fileService.getAllFiles({
+    trash: typeof trash === 'string' ? true : undefined,
+    filetype: filetype as fileType,
+    isFavourite: typeof isFavourite === 'string' ? true : undefined,
+    searchTerm: typeof searchTerm === 'string' ? searchTerm : undefined,
+    paginations,
+  });
 
   sendResponse(res, {
     statusCode: httpStatus.OK,
-    message: 'Donations Retrieve successfully',
-    data: result,
+    success: true,
+    message: 'Files fetched successfully',
+    data: files,
   });
 });
 
-const getSingleDonation = catchAsync(async (req: Request, res: Response) => {
-  const { id } = req.params;
-  const result = await DonationServices.getSingleDonationFromDB(id);
-
+// Get single file by ID
+const getFileById = catchAsync(async (req: Request, res: Response) => {
+  const { fileId } = req.params;
+  const file = await fileService.getFileById(fileId);
   sendResponse(res, {
     statusCode: httpStatus.OK,
-    message: 'Donation Retrieve successfully',
-    data: result,
+    success: true,
+    message: 'File fetched successfully',
+    data: file,
   });
 });
 
-const updateDonation = catchAsync(async (req: Request, res: Response) => {
-  const id = req.params.id;
-  const payload = req.body.bodyData;
-  const files = req.files as any;
-  const result = await DonationServices.updateDonationIntoDB(
-    id,
-    payload,
-    files,
-  );
-
+// Get all files by user ID
+const getFilesByUserId = catchAsync(async (req: Request, res: Response) => {
+  const { userId } = req.params;
+  const files = await fileService.getFilesByUserId(userId);
   sendResponse(res, {
     statusCode: httpStatus.OK,
-    message: 'Donation updated successfully',
-    data: result,
+    success: true,
+    message: 'User files fetched successfully',
+    data: files,
   });
 });
 
-const deleteDonation = catchAsync(async (req: Request, res: Response) => {
-  const id = req.params.id;
-  const result = await DonationServices.deleteDonationIntoDB(id);
-
+// Soft delete a file
+const deleteFile = catchAsync(async (req: Request, res: Response) => {
+  const { fileId } = req.params;
+  await fileService.deleteFile(fileId);
   sendResponse(res, {
     statusCode: httpStatus.OK,
-    message: 'Donation deleted successfully',
+    success: true,
+    message: 'File deleted successfully',
+    data: null,
+  });
+});
+
+// Restore a soft-deleted file
+const restoreFile = catchAsync(async (req: Request, res: Response) => {
+  const { fileId } = req.params;
+  const restoredFile = await fileService.restoreFile(fileId);
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'File restored successfully',
+    data: restoredFile,
+  });
+});
+
+// Restore multiple soft-deleted files
+const restoreMultipleFiles = catchAsync(async (req: Request, res: Response) => {
+  const { ids } = req.query as { ids: string[] };
+  const restoredCount = await fileService.restoreMultipleFiles(ids);
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: `${restoredCount} file(s) restored successfully`,
+    data: null,
+  });
+});
+
+// Permanently delete a file (hard delete)
+const hardDeleteFile = catchAsync(async (req: Request, res: Response) => {
+  const { fileId } = req.params;
+  await fileService.hardDeleteFile(fileId);
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'File permanently deleted',
+    data: null,
+  });
+});
+
+// Update file metadata
+const updateFile = catchAsync(async (req: Request, res: Response) => {
+  const { fileId } = req.params;
+  const payload = req.body;
+  const updatedFile = await fileService.updateFile(fileId, payload);
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'File updated successfully',
+    data: updatedFile,
+  });
+});
+
+// Mark file as favorite
+const makeFavourite = catchAsync(async (req: Request, res: Response) => {
+  const { fileId } = req.params;
+  const result = await fileService.makeFavourite(fileId);
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: result.isFavorite
+      ? 'File marked as favourite'
+      : 'File removed from favourites',
     data: result,
   });
 });
-export const DonationControllers = {
-  createDonation,
-  getAllDonations,
-  getSingleDonation,
-  updateDonation,
-  deleteDonation,
+
+export const fileController = {
+  createFile,
+  getAllFiles,
+  getFileById,
+  getFilesByUserId,
+  deleteFile,
+  restoreFile,
+  restoreMultipleFiles,
+  hardDeleteFile,
+  updateFile,
+  makeFavourite,
 };

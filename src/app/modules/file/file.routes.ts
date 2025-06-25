@@ -1,32 +1,82 @@
-import express from 'express';
-import parseBodyData from '../../../helpars/parseBodyData';
-import { auth } from '../../middlewares/auth';
-
-import { fileUploader } from '../../../helpars/fileUploader';
-import { DonationControllers } from './file.controller';
+import express from "express";
+import auth from "../../middlewares/auth";
+import validateRequest from "../../middlewares/validateRequest";
+import { fileController } from "./file.controller";
+import { fileValidation } from "./file.validation";
 
 const router = express.Router();
 
+// Upload/Create a new file
 router.post(
-  '/',
+  "/",
   auth(),
-  fileUploader.uploadDonationImages,
-  parseBodyData,
-  DonationControllers.createDonation,
+  validateRequest(fileValidation.createFileSchema), // Assuming validation schema exists
+  fileController.createFile
 );
 
-router.get('/', auth(), DonationControllers.getAllDonations);
+// Get all files (non-deleted)
+router.get(
+  "/",
+  auth(),
+  fileController.getAllFiles
+);
 
-router.get('/:id', auth(), DonationControllers.getSingleDonation);
+// Get single file by ID
+router.get(
+  "/:fileId",
+  auth(),
+  fileController.getFileById
+);
 
+// Get all files uploaded by a specific user
+router.get(
+  "/user/:userId",
+  auth(),
+  fileController.getFilesByUserId
+);
+
+// Soft delete a file
+router.delete(
+  "/:fileId",
+  auth(),
+  fileController.deleteFile
+);
+
+// Restore a soft-deleted file
 router.patch(
-  '/:id',
+  "/restore/:fileId",
   auth(),
-  fileUploader.uploadDonationImages,
-  parseBodyData,
-  DonationControllers.updateDonation,
+  fileController.restoreFile
 );
 
-router.delete('/:id', auth(), DonationControllers.deleteDonation);
+// Restore multiple soft-deleted files
+router.patch(
+  "/restore-multiple",
+  auth(),
+  validateRequest(fileValidation.restoreMultipleFilesSchema), // Optional but recommended
+  fileController.restoreMultipleFiles
+);
 
-export const DonationRouters = router;
+// Permanently delete a file (hard delete)
+router.delete(
+  "/permanent/:fileId",
+  auth(),
+  fileController.hardDeleteFile
+);
+
+// Update file metadata
+router.patch(
+  "/:fileId",
+  auth(),
+  validateRequest(fileValidation.updateFileSchema),
+  fileController.updateFile
+);
+
+// Mark/unmark as favorite
+router.patch(
+  "/favourite/:fileId",
+  auth(),
+  fileController.makeFavourite
+);
+
+export const fileRoutes = router;

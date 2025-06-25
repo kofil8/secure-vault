@@ -1,268 +1,242 @@
-import { Category, Prisma } from "@prisma/client";
-import httpStatus from "http-status";
-import config from "../../../config";
-import ApiError from "../../../errors/ApiErrors";
-import { IPaginationOptions } from "../../../interfaces/paginations";
-import prisma from "../../../shared/prisma";
-import { calculatePagination } from "../../../utils/calculatePagination";
-import logger from "../../../utils/logger";
+import { File, fileType, Prisma } from '@prisma/client';
+import ApiError from '../../errors/ApiError';
+import { IPaginationOptions } from '../../interfaces/paginations';
+import { calculatePagination } from '../../utils/calculatePagination';
+import prisma from '../../helpers/prisma';
 
-export type Filters = {
-  searchTerm: string;
-  category: Category;
-  subCategory: string;
-  condition: string;
-};
-
-const createDonationIntoDB = async (id: string, payload: any, files: any) => {
-  const existingUser = await prisma.user.findUnique({
-    where: { id: id },
-    select: { id: true },
+/**
+ * Create a new file record
+ */
+async function createFile(payload: Prisma.FileCreateInput): Promise<File> {
+  const result = await prisma.file.create({
+    data: payload,
   });
 
-  if (!existingUser) {
-    throw new ApiError(httpStatus.BAD_REQUEST, "User not found");
-  }
-  console.log(files);
+  if (!result) throw new ApiError(402, 'File creation failed');
+  return result;
+}
 
-  const uploadFolder = "uploads/donations";
+/**
+ * Get all active files (not soft-deleted)
+ */
+async function getAllFiles({
+  trash,
+  filetype,
+  isFavourite,
+  searchTerm,
+  paginations,
+}: {
+  trash?: boolean;
+  filetype?: fileType;
+  isFavourite?: boolean;
+  searchTerm?: string;
+  paginations: IPaginationOptions;
+}) {
+  const { page, limit, skip, sortBy, sortOrder } =
+    calculatePagination(paginations);
 
-  const imageURL = files?.donationImages
-    ? files.donationImages.map((file: any) =>
-        file.originalname
-          ? `${config.backend_image_url}/${uploadFolder}/${file.originalname}`
-          : ""
-      )
-    : [];
-
-  if (payload.category === Category.Food) {
-    payload.subcategory = null;
-  }
-
-  logger.info(
-    "Category: " + payload.category + " Subcategory: " + payload.subcategory
-  );
-
-  let parsedPayload = payload;
-  if (typeof payload === "string") {
-    try {
-      parsedPayload = JSON.parse(payload);
-    } catch (error) {
-      throw new ApiError(httpStatus.BAD_REQUEST, "Invalid payload format");
-    }
-  }
-
-  const userId = existingUser.id;
-
-  const donation = await prisma.donation.create({
-    data: {
-      userId,
-      ...parsedPayload,
-      donationImages: imageURL,
-    },
-  });
-
-  // Update user's donation count and level
-  const user = await prisma.user.update({
-    where: { id: userId },
-    data: {
-      donationCount: {
-        increment: 1,
-      },
-    },
-  });
-
-  const levels = [
-    { threshold: 1000, level: "Goddess of the Geevers" },
-    { threshold: 500, level: "Queen of the Geevers" },
-    { threshold: 100, level: "Master Geever" },
-    { threshold: 50, level: "Strong Geever" },
-    { threshold: 25, level: "Adult Geever" },
-    { threshold: 10, level: "Teen Geever" },
-    { threshold: 2, level: "Little Geever" },
-  ];
-
-  const currentLevel =
-    levels.find(({ threshold }) => user.donationCount >= threshold)?.level ||
-    "Baby Geever";
-
-  if (user.userlevel !== currentLevel) {
-    await prisma.user.update({
-      where: { id: userId },
-      data: {
-        userlevel: currentLevel,
-      },
-    });
-  }
-
-  return donation;
-};
-
-const getAllDonationsFromDB = async (
-  options: IPaginationOptions,
-  params: Filters
-) => {
-  const { page, limit, skip, sortBy, sortOrder } = calculatePagination(options);
-  const { searchTerm, ...restParams } = params || {};
-
-  const andConditions: Prisma.DonationWhereInput[] = [];
-
-  // search by user
-  if (searchTerm) {
-    andConditions.push({
-      OR: [
-        {
-          name: {
-            contains: searchTerm,
-            mode: "insensitive",
-          },
-        },
-        {
-          description: {
-            contains: searchTerm,
-            mode: "insensitive",
-          },
-        },
-      ],
-    });
-  }
-
-  if (Object.keys(restParams).length) {
-    andConditions.push({
-      AND: Object.keys(restParams).map((key) => ({
-        [key]: {
-          //category:{equals:Food}
-          equals: restParams[key as keyof typeof restParams],
-        },
-      })),
-    });
-  }
-
-  const whereConditions: Prisma.DonationWhereInput =
-    andConditions.length > 0 ? { AND: andConditions } : {};
-
-  const result = await prisma.donation.findMany({
-    where: whereConditions,
-    take: limit,
-    skip,
-    orderBy: {
-      [sortBy]: sortOrder,
-    },
-  });
-
-  const total = await prisma.donation.count({
-    where: whereConditions,
-  });
-
-  const meta = {
-    page,
-    limit,
-    total_docs: total,
-    total_pages: Math.ceil(total / limit),
+  const whereCondition: Prisma.FileWhereInput = {
+    isDeleted: false,
+    deletedAt: null,
   };
 
-  return { meta, data: result };
-};
+  if (searchTerm) {
+    whereCondition.OR = [
+      {
+        fileName: {
+          contains: searchTerm,
+          mode: 'insensitive',
+        },
+      },
+    ];
+  }
 
-const getSingleDonationFromDB = async (id: string) => {
-  const result = await prisma.donation.findUnique({
+  if (trash) {
+    whereCondition.isDeleted = true;
+    whereCondition.deletedAt = {
+      not: null,
+    };
+  }
+
+  if (isFavourite) {
+    whereCondition.isFavorite = isFavourite;
+  }
+
+  if (filetype) {
+    whereCondition.fileType = filetype;
+  }
+
+  const result = await prisma.file.findMany({
+    where: whereCondition,
+    skip,
+    take: limit,
+    orderBy: sortBy
+      ? {
+          [String(sortBy)]: sortOrder,
+        }
+      : undefined,
+  });
+
+  return {
+    result: result,
+    meta: {
+      page,
+      limit,
+      skip,
+      total: result.length,
+      sortBy,
+      sortOrder,
+    },
+  };
+}
+
+/**
+ * Get a file by ID (only if not soft-deleted)
+ */
+async function getFileById(id: string): Promise<File | null> {
+  const result = await prisma.file.findUnique({
     where: {
       id,
     },
   });
-  if (!result) {
-    throw new ApiError(httpStatus.NOT_FOUND, "Donation not found");
-  }
+
+  if (!result) throw new ApiError(402, 'File creation failed');
+
   return result;
-};
+}
 
-const updateDonationIntoDB = async (id: string, payload: any, files: any) => {
-  console.log(id);
-  const existingDonation = await prisma.donation.findUnique({
+/**
+ * Get all files by user ID (only active files)
+ */
+
+async function getFilesByUserId(userId: string): Promise<File[]> {
+  const result = await prisma.file.findMany({
     where: {
-      id,
-    },
-    select: {
-      id: true,
+      userId,
+      deletedAt: null,
     },
   });
 
-  if (!existingDonation) {
-    throw new ApiError(httpStatus.NOT_FOUND, "Donation not found");
-  }
+  if (!result) throw new ApiError(402, 'File creation failed');
+  return result;
+}
 
-  const imageURL = files?.donationImages
-    ? files.donationImages.map((file: any) =>
-        file.originalname
-          ? `${config.backend_image_url}/uploads/${file.originalname}`
-          : ""
-      )
-    : [];
-
-  if (payload.category === Category.Food) {
-    payload.subcategory = null;
-  }
-  logger.info(
-    "Category: " + payload.category + " Subcategory: " + payload.subcategory
-  );
-
-  let parsedPayload = payload;
-  if (typeof payload === "string") {
-    try {
-      parsedPayload = JSON.parse(payload);
-    } catch (error) {
-      throw new ApiError(httpStatus.BAD_REQUEST, "Invalid payload format");
-    }
-  }
-  const donation = await prisma.donation.update({
+/**
+ * Soft delete a file
+ */
+async function deleteFile(id: string): Promise<File> {
+  const result = await prisma.file.update({
     where: {
       id,
     },
     data: {
-      ...parsedPayload,
-      donationImages: imageURL,
-    },
-    select: {
-      id: true,
-      userId: true,
-      name: true,
-      description: true,
-      donationImages: true,
-      latitude: true,
-      longitude: true,
-      category: true,
-      subcategory: true,
-      condition: true,
-      createdAt: true,
-      updatedAt: true,
+      isDeleted: true,
+      deletedAt: new Date(),
     },
   });
-  return donation;
-};
 
-const deleteDonationIntoDB = async (id: string) => {
-  const existingDonation = await prisma.donation.findUnique({
+  return result;
+}
+
+/**
+ * Restore a soft-deleted file
+ */
+
+async function restoreFile(id: string): Promise<File> {
+  return await prisma.file.update({
+    where: {
+      id,
+    },
+    data: {
+      isDeleted: false,
+      deletedAt: null,
+    },
+  });
+}
+
+/**
+ * Restore multiple soft-deleted files by their IDs
+ */
+async function restoreMultipleFiles(ids: string[]): Promise<number> {
+  const result = await prisma.file.updateMany({
+    where: {
+      id: {
+        in: ids,
+      },
+      deletedAt: {
+        not: null,
+      },
+      isDeleted: true,
+    },
+    data: {
+      isDeleted: false,
+      deletedAt: null,
+    },
+  });
+
+  return result.count; // Return the number of restored files
+}
+
+/**
+ * Permanently delete a file (hard delete)
+ */
+async function hardDeleteFile(id: string): Promise<void> {
+  await prisma.file.delete({
     where: {
       id,
     },
   });
+}
 
-  if (!existingDonation) {
-    throw new ApiError(httpStatus.NOT_FOUND, "Donation not found");
-  }
+/**
+ * Update file metadata
+ */
 
-  const donation = await prisma.donation.delete({
+async function updateFile(
+  id: string,
+  data: Partial<{
+    fileName: string;
+    fileType: fileType;
+    fileSize: number;
+    fileUrl: string;
+    filePath: string | null;
+  }>,
+): Promise<File> {
+  const result = await prisma.file.update({
     where: {
       id,
     },
+    data,
   });
-  return donation;
-};
 
-export const DonationServices = {
-  createDonationIntoDB,
-  getAllDonationsFromDB,
-  getSingleDonationFromDB,
-  updateDonationIntoDB,
-  deleteDonationIntoDB,
+  if (!result) throw new ApiError(402, 'File update failed');
+  return result;
+}
+
+
+async function makeFavourite(id: string): Promise<File> {
+  const result = await prisma.file.update({
+    where: {
+      id,
+    },
+    data: {
+      isFavorite: true,
+    },
+  });
+
+  if (!result) throw new ApiError(402, 'File update failed');
+  return result;
+}
+
+export const fileService = {
+  createFile,
+  getAllFiles,
+  getFileById,
+  getFilesByUserId,
+  deleteFile,
+  restoreFile,
+  hardDeleteFile,
+  updateFile,
+  restoreMultipleFiles,
+  makeFavourite,
 };

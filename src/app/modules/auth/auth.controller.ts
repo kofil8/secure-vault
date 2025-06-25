@@ -4,8 +4,22 @@ import catchAsync from '../../utils/catchAsync';
 import sendResponse from '../../utils/sendResponse';
 
 const loginUser = catchAsync(async (req, res) => {
+  
   const { email, password } = req.body;
+
   const result = await AuthServices.loginUserFromDB({ email, password });
+
+  res.cookie('accessToken', result.accessToken, {
+    httpOnly: true,
+    secure: false,
+    sameSite: 'lax',
+  });
+
+  res.cookie('refreshToken', result.accessToken, {
+    httpOnly: true,
+    secure: false,
+    sameSite: 'lax',
+  });
 
   sendResponse(res, {
     statusCode: httpStatus.OK,

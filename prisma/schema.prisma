@@ -10,10 +10,9 @@ datasource db {
 enum fileType {
   pdf
   docx
-  excel
-  png
-  jpg
-  jpeg
+  xlsx
+  pptx
+  image
 }
 
 model User {
@@ -29,14 +28,14 @@ model User {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  files        file[]
+  files        File[]
   activityLogs ActivityLog[]
-  securityQAs  securityQA[]
+  securityQAs  SecurityQA[]
 
   @@map("users")
 }
 
-model file {
+model File {
   id        String    @id @default(auto()) @map("_id") @db.ObjectId
   userId    String    @db.ObjectId
   user      User      @relation(fields: [userId], references: [id])
@@ -44,7 +43,9 @@ model file {
   fileType  fileType
   fileSize  Int
   fileUrl   String // If only URL
-  filePath  String
+  filePath  String?
+  isDeleted Boolean @default(false)
+  isFavorite Boolean @default(false)
   deletedAt DateTime? // Soft delete support
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
@@ -52,7 +53,7 @@ model file {
   @@map("files")
 }
 
-model securityQA {
+model SecurityQA {
   id        String   @id @default(auto()) @map("_id") @db.ObjectId
   userId    String   @db.ObjectId
   user      User     @relation(fields: [userId], references: [id])
