@@ -3,7 +3,7 @@ import jwt, { JwtPayload, Secret, SignOptions } from 'jsonwebtoken';
 const generateToken = (
   payload: Record<string, unknown>,
   secret: Secret,
-  expiresIn: string,
+  expiresIn: SignOptions['expiresIn'],
 ): string => {
   const options: SignOptions = {
     algorithm: 'HS256',
@@ -16,7 +16,7 @@ const generateToken = (
 const verifyToken = (token: string, secret: Secret): JwtPayload => {
   try {
     return jwt.verify(token, secret) as JwtPayload;
-  } catch (err) {
+  } catch {
     throw new Error('Invalid or expired token');
   }
 };

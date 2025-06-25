@@ -25,6 +25,7 @@ export const auth = () => {
     res: Response,
     next: NextFunction,
   ): Promise<void> => {
+
     const authHeader = req.headers.authorization;
 
     if (!authHeader?.startsWith('Bearer ')) {
@@ -57,7 +58,9 @@ export const auth = () => {
       }
 
       req.user = { id: decoded.id, email: decoded.email };
+
       next();
+      
     } catch (error) {
       if (error instanceof TokenExpiredError) {
         return next(
