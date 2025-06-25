@@ -4,9 +4,6 @@ import httpStatus from 'http-status';
 import { ZodError } from 'zod';
 import config from '../../config';
 import { IGenericErrorMessage } from '../interfaces/error';
-import handleValidationError from '../errors/handleValidationError';
-import handleZodError from '../errors/handleZodError';
-import handleClientError from '../errors/handleClientError';
 import ApiError from '../errors/ApiError';
 
 const GlobalErrorHandler = (
@@ -55,5 +52,57 @@ const GlobalErrorHandler = (
 
   _next(); // Call next to pass the error to the next middleware
 };
+
+function handleValidationError(error: Prisma.PrismaClientValidationError) {
+  const message = 'Prisma validation error';
+  const errorMessages = [
+    {
+      path: '',
+      message: error.message,
+    },
+  ];
+  return {
+    statusCode: httpStatus.BAD_REQUEST,
+    message,
+    errorMessages,
+  };
+}
+
+function handleZodError(error: ZodError<unknown>) {
+  const errorMessages: IGenericErrorMessage[] = error.errors.map((err) => ({
+    path: err.path.join('.'),
+    message: err.message,
+  }));
+
+  return {
+    statusCode: httpStatus.BAD_REQUEST,
+    message: 'Validation error',
+    errorMessages,
+  };
+}
+
+function handleClientError(error: Prisma.PrismaClientKnownRequestError) {
+  const message = 'Database request error';
+  const statusCode = httpStatus.BAD_REQUEST;
+  const errorMessages: IGenericErrorMessage[] = [
+    {
+      path: '',
+      message: error.message,
+    },
+  ];
+
+  // You can customize messages based on error.code if needed
+  // For example:
+  // if (error.code === 'P2002') {
+  //   message = 'Unique constraint failed on the field(s)';
+  //   statusCode = httpStatus.CONFLICT;
+  // }
+
+  return {
+    statusCode,
+    message,
+    errorMessages,
+  };
+}
 
 export default GlobalErrorHandler;

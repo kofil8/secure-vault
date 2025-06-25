@@ -9,8 +9,7 @@ import GlobalErrorHandler from './app/middlewares/globalErrorHandler';
 import { defaultLimiter } from './app/middlewares/rateLimit';
 import router from './app/routes';
 import logger from './app/utils/logger';
-// import { restrictToDedicatedIP } from './app/middlewares/ip-restriction';
-import { geoIpRestriction } from './app/middlewares/geoip-restriction';
+import { restrictToNordVPN } from './app/middlewares/restrictToNordVPN';
 
 const app: Application = express();
 const morganFormat = ':method :url :status :response-time ms';
@@ -29,8 +28,8 @@ app.use(cookieParser());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(defaultLimiter);
-// app.use(restrictToDedicatedIP);
-app.use(geoIpRestriction);
+app.set('trust proxy', true);
+router.use(restrictToNordVPN());
 
 // 📂 Static files
 app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
