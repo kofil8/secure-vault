@@ -14,12 +14,14 @@ const loginUserFromDB = async ({
   password: string;
 }) => {
   const user = await prisma.user.findUnique({ where: { email } });
+
   if (!user) throw new ApiError(httpStatus.BAD_REQUEST, 'User not found');
 
   const isCorrectPassword = await bcrypt.compare(
     password,
     user.password as string,
   );
+
   if (!isCorrectPassword)
     throw new ApiError(httpStatus.BAD_REQUEST, 'Invalid credentials');
 
@@ -85,6 +87,7 @@ const refreshAccessToken = async (token: string) => {
 
     return { accessToken: newAccessToken, refreshToken: newRefreshToken };
   } catch (error) {
+    console.log(error);
     throw new ApiError(httpStatus.UNAUTHORIZED, 'Could not refresh token');
   }
 };

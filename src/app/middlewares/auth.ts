@@ -1,80 +1,57 @@
 import { NextFunction, Request, Response } from 'express';
-import httpStatus from 'http-status';
-import jwt, {
-  Secret,
-  TokenExpiredError,
-  JsonWebTokenError,
-} from 'jsonwebtoken';
+
 import config from '../../config';
+import { JwtPayload, Secret } from 'jsonwebtoken';
 import ApiError from '../errors/ApiError';
+import httpStatus from 'http-status';
+import { jwtHelpers } from '../helpers/jwtHelpers';
 import prisma from '../helpers/prisma';
 
-// Extend Express Request type to include custom user field
-declare module 'express-serve-static-core' {
-  interface Request {
-    user?: {
-      id: string;
-      email: string;
-    };
-  }
-}
-
-export const auth = () => {
-  return async (
-    req: Request,
-    res: Response,
-    next: NextFunction,
-  ): Promise<void> => {
-
-    const authHeader = req.headers.authorization;
-
-    if (!authHeader?.startsWith('Bearer ')) {
-      return next(
-        new ApiError(
-          httpStatus.UNAUTHORIZED,
-          'Authorization header missing or malformed',
-        ),
-      );
-    }
-
-    const token = authHeader.split(' ')[1];
-
+const auth = (...roles: string[]) => {
+  return async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const decoded = jwt.verify(token, config.jwt.jwt_secret as Secret) as {
-        id: string;
-        email: string;
-      };
+      const { accessToken } = req.cookies || {};
 
-      if (!decoded?.id || !decoded?.email) {
-        return next(
-          new ApiError(httpStatus.UNAUTHORIZED, 'Invalid token payload'),
-        );
+      let token = accessToken;
+
+      if (!token && req.headers.authorization) {
+        const parts = req.headers.authorization.split(' ');
+        if (parts.length === 2 && parts[0] === 'Bearer') {
+          token = parts[1];
+        }
       }
 
-      const user = await prisma.user.findUnique({ where: { id: decoded.id } });
+      if (!token) {
+        throw new ApiError(httpStatus.UNAUTHORIZED, 'You are not authorized!');
+      }
+
+      const verifiedUser = jwtHelpers.verifyToken(
+        token,
+        config.jwt.jwt_secret as Secret,
+      );
+
+      const { id } = verifiedUser;
+
+      const user = await prisma.user.findUnique({
+        where: {
+          id: id,
+        },
+      });
 
       if (!user) {
-        return next(new ApiError(httpStatus.NOT_FOUND, 'User not found'));
+        throw new ApiError(httpStatus.NOT_FOUND, 'User not found!');
       }
 
-      req.user = { id: decoded.id, email: decoded.email };
+      req.user = verifiedUser as JwtPayload;
 
+      if (roles.length && !roles.includes(verifiedUser.role)) {
+        throw new ApiError(httpStatus.FORBIDDEN, 'Forbidden!');
+      }
       next();
-      
-    } catch (error) {
-      if (error instanceof TokenExpiredError) {
-        return next(
-          new ApiError(httpStatus.UNAUTHORIZED, 'Access token has expired'),
-        );
-      } else if (error instanceof JsonWebTokenError) {
-        return next(
-          new ApiError(httpStatus.UNAUTHORIZED, 'Invalid access token'),
-        );
-      }
-
-      return next(
-        new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Authentication error'),
-      );
+    } catch (err) {
+      next(err);
     }
   };
 };
+
+export default auth;

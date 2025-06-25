@@ -1,18 +1,23 @@
 import express from 'express';
+import { fileRoutes } from '../modules/file/file.routes';
+import { imageRoutes } from '../modules/image/image.routes';
 import { AuthRouters } from '../modules/auth/auth.route';
-import { ProfileRouters } from '../modules/profile/profile.router';
 
 const router = express.Router();
 
 const moduleRoutes = [
   {
-    path: '/auth',
-    route: AuthRouters,
+    path: '/file',
+    route: fileRoutes,
   },
   {
-    path: '/profile',
-    route: ProfileRouters,
+    path: '/image',
+    route: imageRoutes,
   },
+  {
+    path:"/auth", 
+    route:AuthRouters
+  }
 ];
 
 moduleRoutes.forEach((route) => router.use(route.path, route.route));

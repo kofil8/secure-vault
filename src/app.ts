@@ -73,7 +73,6 @@ app.use((req, res) => {
 });
 
 // 🛑 Global Error Handler
-
 app.use(GlobalErrorHandler as ErrorRequestHandler);
 
 export default app;
