@@ -7,7 +7,7 @@ export const generateTokenReset = (
 ) => {
   const token = jwt.sign(payload, secret, <SignOptions>{
     algorithm: 'HS256',
-    expiresIn: expiresIn,
+    expiresIn: expiresIn as SignOptions['expiresIn'],
   });
   return token;
 };
