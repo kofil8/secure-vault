@@ -1,18 +1,23 @@
 import express from 'express';
-import { auth } from '../../middlewares/auth';
-import { AuthControllers } from './auth.controller';
+import validateRequest from '../../middlewares/validateRequest';
 import { authValidation } from './auth.validation';
+import { AuthControllers } from './auth.controller';
+import { auth } from '../../middlewares/auth';
 
 const router = express.Router();
 
 router.post(
   '/login',
-  authValidation(authValidation.loginUser),
+  validateRequest(authValidation.loginUser), // ✅ Correct usage
   AuthControllers.loginUser,
 );
 
-router.post('/logout', auth(), AuthControllers.logoutUser);
+router.post(
+  '/refresh-token',
+  validateRequest(authValidation.refreshToken), // ✅ Validate refresh token
+  AuthControllers.refreshToken,
+);
 
-router.post('/refresh-token', AuthControllers.refreshToken);
+router.post('/logout', auth(), AuthControllers.logoutUser);
 
 export const AuthRouters = router;
