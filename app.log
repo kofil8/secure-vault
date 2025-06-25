@@ -38,3 +38,7 @@
 {"level":"\u001b[32minfo\u001b[39m","message":"{\"method\":\"POST\",\"url\":\"/api/v1/auth/login\",\"status\":\"200\",\"responseTime\":\"808.455\"}","timestamp":"2025-06-25T08:13:53.201Z"}
 {"level":"\u001b[32minfo\u001b[39m","message":"{\"method\":\"GET\",\"url\":\"/api/v1/profile/\",\"status\":\"404\",\"responseTime\":\"0.470\"}","timestamp":"2025-06-25T08:14:28.940Z"}
 {"level":"\u001b[32minfo\u001b[39m","message":"{\"method\":\"GET\",\"url\":\"/api/v1/profile/me\",\"status\":\"200\",\"responseTime\":\"221.675\"}","timestamp":"2025-06-25T08:15:07.898Z"}
+{"level":"\u001b[32minfo\u001b[39m","message":"{\"method\":\"PATCH\",\"url\":\"/api/v1/profile/update\",\"status\":\"200\",\"responseTime\":\"1178.385\"}","timestamp":"2025-06-25T08:32:05.498Z"}
+{"level":"\u001b[32minfo\u001b[39m","message":"{\"method\":\"PATCH\",\"url\":\"/api/v1/profile/update\",\"status\":\"200\",\"responseTime\":\"566.381\"}","timestamp":"2025-06-25T08:34:50.621Z"}
+{"level":"\u001b[32minfo\u001b[39m","message":"{\"method\":\"PATCH\",\"url\":\"/api/v1/profile/update\",\"status\":\"200\",\"responseTime\":\"567.025\"}","timestamp":"2025-06-25T08:36:13.849Z"}
+{"level":"\u001b[32minfo\u001b[39m","message":"{\"method\":\"PATCH\",\"url\":\"/api/v1/profile/update\",\"status\":\"200\",\"responseTime\":\"572.438\"}","timestamp":"2025-06-25T08:37:09.496Z"}
