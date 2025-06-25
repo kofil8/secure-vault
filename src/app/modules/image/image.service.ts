@@ -7,6 +7,8 @@ import {
   deleteMultipleFromDigitalOceanAWS,
   uploadToDigitalOceanAWS,
 } from '../../utils/uploadToS3';
+import prisma from '../../helpers/prisma';
+import { fileType } from '@prisma/client';
 
 // create image
 const createImage = async (req: Request) => {
@@ -24,25 +26,58 @@ const createImage = async (req: Request) => {
     throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Image upload failed');
   }
 
-  return { imageUrl:imageUrl.Location };
+  return { imageUrl: imageUrl.Location };
 };
 
 // Service for creating images//multiple images creation
 const createImages = async (req: Request) => {
   const files = req.files as Express.Multer.File[];
+  const userId = req.user?.id;
 
   if (!files || files.length === 0) {
     throw new ApiError(httpStatus.BAD_REQUEST, 'No images provided');
   }
 
-  const imageUrls = [];
+  const fileData = [];
 
   for (const file of files) {
-    const url = await uploadToDigitalOceanAWS(file);
-    imageUrls.push(url.Location);
+    console.log('file', file);
+    const type = file.mimetype.split('/').pop() as fileType;
+    if (
+      !file.mimetype.startsWith('image/') &&
+      type &&
+      !Object.values(fileType).includes(type)
+    ) {
+      throw new ApiError(httpStatus.BAD_REQUEST, `Invalid file type: ${type}`);
+    }
   }
 
-  return { imageUrls };
+  for (const file of files) {
+    let type;
+
+    if (file.mimetype.startsWith('image/')) {
+      type = fileType.image;
+    } else {
+      type = file.mimetype.split('/').pop() as fileType;
+    }
+
+    const url = await uploadToDigitalOceanAWS(file);
+    fileData.push({
+      fileName: file.originalname,
+      fileType: type,
+      fileUrl: url.Location,
+      fileSize: file.size,
+      userId: userId as string,
+    });
+  }
+
+  const createdFiles = await prisma.file.createMany({
+    data: fileData,
+  });
+
+  console.log('createdFiles', createdFiles);
+
+  return createdFiles;
 };
 
 //delete single image
