@@ -72,13 +72,13 @@ const refreshAccessToken = async (token: string) => {
     const newAccessToken = jwtHelpers.generateToken(
       { id: user.id, email: user.email },
       config.jwt.jwt_secret as Secret,
-      Number(config.jwt.expires_in),
+    config.jwt.expires_in as SignOptions['expiresIn'],
     );
 
     const newRefreshToken = jwtHelpers.generateToken(
       { id: user.id, email: user.email },
       config.jwt.refresh_token_secret as Secret,
-      Number(config.jwt.refresh_token_expires_in),
+    config.jwt.expires_in as SignOptions['expiresIn'],
     );
 
     await prisma.user.update({

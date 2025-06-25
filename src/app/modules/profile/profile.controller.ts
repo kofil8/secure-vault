@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import httpStatus from 'http-status';
-import { Secret } from 'jsonwebtoken';
+import { Secret, SignOptions } from 'jsonwebtoken';
 import config from '../../../config';
 import { jwtHelpers } from '../../helpers/jwtHelpers';
 import catchAsync from '../../utils/catchAsync';
@@ -8,7 +8,6 @@ import sendResponse from '../../utils/sendResponse';
 import { ProfileServices } from './profile.service';
 
 const getMyProfile = catchAsync(async (req: Request, res: Response) => {
-  
   const id = req.user?.id as string;
 
   const result = await ProfileServices.getMyProfileFromDB(id);
@@ -19,7 +18,6 @@ const getMyProfile = catchAsync(async (req: Request, res: Response) => {
     message: 'Profile retrieved successfully',
     data: result,
   });
-  
 });
 
 const updateMyProfile = catchAsync(async (req: Request, res: Response) => {
@@ -43,7 +41,7 @@ const forgotPassword = catchAsync(async (req: Request, res: Response) => {
   const accessToken = jwtHelpers.generateToken(
     { id: user.id, email: user.email },
     config.jwt.jwt_secret as Secret,
-    Number(config.jwt.expires_in),
+    config.jwt.expires_in as SignOptions['expiresIn'],
   );
 
   sendResponse(res, {
