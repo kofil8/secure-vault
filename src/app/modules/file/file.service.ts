@@ -213,7 +213,6 @@ async function updateFile(
   return result;
 }
 
-
 async function makeFavourite(id: string): Promise<File> {
   const result = await prisma.file.update({
     where: {

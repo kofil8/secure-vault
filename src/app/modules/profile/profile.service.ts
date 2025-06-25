@@ -42,8 +42,10 @@ const updateMyProfileIntoDB = async (id: string, payload: any, file: any) => {
   );
 };
 
-const forgotPassword = async (email: string, answers: string[]) => {
+const verifySecretQuestions = async (email: string, answers: string[]) => {
+
   const user = await prisma.user.findUnique({ where: { email } });
+
   if (!user) throw new ApiError(httpStatus.NOT_FOUND, 'User not found');
 
   const correctAnswers = [
@@ -93,9 +95,9 @@ const changePassword = async (
 };
 
 const updateSecurityAnswers = async (id: string, answers: string[]) => {
+  
   const user = await prisma.user.findUnique({ where: { id } });
   if (!user) throw new ApiError(httpStatus.NOT_FOUND, 'User not found');
-
   const updated = await prisma.user.update({
     where: { id },
     data: {
@@ -112,7 +114,7 @@ const updateSecurityAnswers = async (id: string, answers: string[]) => {
 export const ProfileServices = {
   getMyProfileFromDB,
   updateMyProfileIntoDB,
-  forgotPassword,
+  forgotPassword: verifySecretQuestions,
   resetPassword,
   changePassword,
   updateSecurityAnswers,

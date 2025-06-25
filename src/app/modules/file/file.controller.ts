@@ -19,6 +19,7 @@ const createFile = catchAsync(async (req: Request, res: Response) => {
     message: 'File uploaded successfully',
     data: file,
   });
+  
 });
 
 // Get all files (non-deleted)

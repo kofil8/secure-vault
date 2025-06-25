@@ -1,6 +1,6 @@
 import * as bcrypt from 'bcrypt';
 import httpStatus from 'http-status';
-import { Secret } from 'jsonwebtoken';
+import { Secret, SignOptions } from 'jsonwebtoken';
 import config from '../../../config';
 import ApiError from '../../errors/ApiError';
 import { jwtHelpers } from '../../helpers/jwtHelpers';
@@ -28,13 +28,13 @@ const loginUserFromDB = async ({
   const accessToken = jwtHelpers.generateToken(
     { id: user.id, email: user.email },
     config.jwt.jwt_secret as Secret,
-    Number(config.jwt.expires_in),
+    config.jwt.expires_in as SignOptions['expiresIn'],
   );
 
   const refreshToken = jwtHelpers.generateToken(
     { id: user.id, email: user.email },
     config.jwt.refresh_token_secret as Secret,
-    Number(config.jwt.expires_in),
+    config.jwt.expires_in as SignOptions['expiresIn'],
   );
 
   await prisma.user.update({ where: { id: user.id }, data: { refreshToken } });

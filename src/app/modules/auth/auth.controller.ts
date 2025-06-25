@@ -13,12 +13,16 @@ const loginUser:RequestHandler = catchAsync(async (req, res) => {
   res.cookie('accessToken', result.accessToken, {
     httpOnly: true,
     secure: false,
+    maxAge:60 * 60 * 24 * 7,
+    path:"/",
     sameSite: 'lax',
   });
 
   res.cookie('refreshToken', result.accessToken, {
     httpOnly: true,
     secure: false,
+    maxAge:60 * 60 * 24 * 7,
+    path:"/",
     sameSite: 'lax',
   });
 
@@ -31,9 +35,7 @@ const loginUser:RequestHandler = catchAsync(async (req, res) => {
 });
 
 const logoutUser = catchAsync(async (req:Request, res:Response) => {
-
   const id = req.user?.id as string;
-
   await AuthServices.logoutUser(id);
 
   sendResponse(res, {

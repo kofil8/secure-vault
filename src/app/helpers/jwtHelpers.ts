@@ -4,10 +4,10 @@ const generateToken = (
   payload: Record<string, unknown>,
   secret: Secret,
   expiresIn: SignOptions['expiresIn'],
-): string => {
+): string => { 
   const options: SignOptions = {
     algorithm: 'HS256',
-    expiresIn: expiresIn,
+    expiresIn: expiresIn || "1d",
   };
 
   return jwt.sign(payload, secret, options);

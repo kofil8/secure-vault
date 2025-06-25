@@ -16,7 +16,9 @@ router.patch(
   fileUploader.upload.single("image"),
   ProfileControllers.updateMyProfile,
 );
+
 router.patch('/change-password', auth(), ProfileControllers.changePassword);
+
 router.patch(
   '/security-answers',
   auth(),
