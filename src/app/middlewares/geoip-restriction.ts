@@ -5,32 +5,11 @@ import path from 'path';
 
 // ✅ Add your NordVPN dedicated IPs here
 const allowedIps = [
-  '123.09.23.2', // Your dedicated NordVPN IP
+  '192.168.0.108', // Your dedicated NordVPN IP
 ];
 
 // 🌍 ISO country codes allowed
-const allowedCountries = [
-  'US',
-  'DE',
-  'UK',
-  'NL',
-  'FR',
-  'CA',
-  'JP',
-  'IT',
-  'SE',
-  'AU',
-  'HK',
-  'CH',
-  'ES',
-  'BE',
-  'DK',
-  'PL',
-  'PT',
-  'ZA',
-  'MX',
-  'CZ',
-];
+const allowedCountries = ['US', 'DE', 'UK', 'NL', 'FR', 'CA', 'BN'];
 
 // 📁 Log file setup
 const logDir = path.join(__dirname, '..', 'logs');

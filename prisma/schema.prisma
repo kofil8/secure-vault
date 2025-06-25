@@ -17,21 +17,21 @@ enum fileType {
 }
 
 model User {
-  id           String   @id @default(auto()) @map("_id") @db.ObjectId
-  email        String   @unique
-  password     String
-  name         String
-  phoneNumber  String?
-  profileImage String?
-  bio          String?
-  refreshToken String?
-  securityQA   Json? // Stores { question: string, answer: string }[]
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id              String   @id @default(auto()) @map("_id") @db.ObjectId
+  email           String   @unique
+  password        String
+  name            String
+  phoneNumber     String?
+  profileImage    String?
+  bio             String?
+  refreshToken    String?
+  securityAnswer1 String?
+  securityAnswer2 String?
+  securityAnswer3 String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
-  files        file[]
-  activityLogs ActivityLog[]
-  securityQAs  securityQA[]
+  files file[]
 
   @@map("users")
 }
@@ -50,26 +50,4 @@ model file {
   updatedAt DateTime  @updatedAt
 
   @@map("files")
-}
-
-model securityQA {
-  id        String   @id @default(auto()) @map("_id") @db.ObjectId
-  userId    String   @db.ObjectId
-  user      User     @relation(fields: [userId], references: [id])
-  question  String
-  answer    String
-  createdAt DateTime @default(now())
-
-  @@map("security_qas")
-}
-
-model ActivityLog {
-  id        String   @id @default(auto()) @map("_id") @db.ObjectId
-  userId    String   @db.ObjectId
-  user      User     @relation(fields: [userId], references: [id])
-  action    String
-  meta      Json?
-  createdAt DateTime @default(now())
-
-  @@map("activity_logs")
 }
