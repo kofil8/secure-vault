@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-/* eslint-disable @typescript-eslint/no-unused-vars */
 import bcrypt from 'bcrypt';
 import httpStatus from 'http-status';
 import config from '../../../config';
