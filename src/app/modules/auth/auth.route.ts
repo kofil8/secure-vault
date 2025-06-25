@@ -8,13 +8,13 @@ const router = express.Router();
 
 router.post(
   '/login',
-  validateRequest(authValidation.loginUser), // ✅ Correct usage
+  validateRequest(authValidation.loginUser),
   AuthControllers.loginUser,
 );
 
 router.post(
   '/refresh-token',
-  validateRequest(authValidation.refreshToken), // ✅ Validate refresh token
+  validateRequest(authValidation.refreshToken),
   AuthControllers.refreshToken,
 );
 

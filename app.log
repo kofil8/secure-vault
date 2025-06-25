@@ -3,3 +3,11 @@
 {"level":"\u001b[32minfo\u001b[39m","message":"{\"method\":\"GET\",\"url\":\"/\",\"status\":\"304\",\"responseTime\":\"1.074\"}","timestamp":"2025-06-25T05:40:02.798Z"}
 {"level":"\u001b[32minfo\u001b[39m","message":"{\"method\":\"GET\",\"url\":\"/\",\"status\":\"304\",\"responseTime\":\"0.360\"}","timestamp":"2025-06-25T05:40:03.551Z"}
 {"level":"\u001b[32minfo\u001b[39m","message":"{\"method\":\"GET\",\"url\":\"/\",\"status\":\"304\",\"responseTime\":\"2.193\"}","timestamp":"2025-06-25T05:40:25.452Z"}
+{"level":"\u001b[32minfo\u001b[39m","message":"{\"method\":\"GET\",\"url\":\"/\",\"status\":\"304\",\"responseTime\":\"4.337\"}","timestamp":"2025-06-25T07:13:20.815Z"}
+{"level":"\u001b[32minfo\u001b[39m","message":"{\"method\":\"GET\",\"url\":\"/favicon.ico\",\"status\":\"404\",\"responseTime\":\"0.578\"}","timestamp":"2025-06-25T07:13:21.816Z"}
+{"level":"\u001b[32minfo\u001b[39m","message":"{\"method\":\"GET\",\"url\":\"/api/v1/auth\",\"status\":\"404\",\"responseTime\":\"1.945\"}","timestamp":"2025-06-25T07:13:35.698Z"}
+{"level":"\u001b[32minfo\u001b[39m","message":"{\"method\":\"GET\",\"url\":\"/v1/api/auth\",\"status\":\"404\",\"responseTime\":\"0.186\"}","timestamp":"2025-06-25T07:14:11.001Z"}
+{"level":"\u001b[32minfo\u001b[39m","message":"{\"method\":\"GET\",\"url\":\"/v1/auth\",\"status\":\"404\",\"responseTime\":\"0.130\"}","timestamp":"2025-06-25T07:14:17.412Z"}
+{"level":"\u001b[32minfo\u001b[39m","message":"{\"method\":\"GET\",\"url\":\"/api/v1/auth\",\"status\":\"404\",\"responseTime\":\"0.334\"}","timestamp":"2025-06-25T07:14:35.451Z"}
+{"level":"\u001b[32minfo\u001b[39m","message":"{\"method\":\"GET\",\"url\":\"/api/v1/auth/login\",\"status\":\"404\",\"responseTime\":\"0.681\"}","timestamp":"2025-06-25T07:15:25.440Z"}
+{"level":"\u001b[32minfo\u001b[39m","message":"{\"method\":\"GET\",\"url\":\"/api/v1/auth/login\",\"status\":\"404\",\"responseTime\":\"0.324\"}","timestamp":"2025-06-25T07:15:28.616Z"}
