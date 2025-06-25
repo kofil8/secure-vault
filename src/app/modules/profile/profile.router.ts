@@ -1,9 +1,9 @@
 import express from 'express';
 import { ProfileControllers } from './profile.controller';
-import { auth } from '../../middlewares/auth';
 import { authReset } from '../../middlewares/authReset';
 import { fileUploader } from '../../../helpars/fileUploader';
 import parseBodyData from '../../../helpars/parseBodyData';
+import auth from '../../middlewares/auth';
 
 const router = express.Router();
 
@@ -13,7 +13,7 @@ router.patch(
   '/update',
   auth(),
   parseBodyData,
-  fileUploader.uploadprofileImage,
+  fileUploader.upload.single("image"),
   ProfileControllers.updateMyProfile,
 );
 router.patch('/change-password', auth(), ProfileControllers.changePassword);

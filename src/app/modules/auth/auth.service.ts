@@ -28,13 +28,13 @@ const loginUserFromDB = async ({
   const accessToken = jwtHelpers.generateToken(
     { id: user.id, email: user.email },
     config.jwt.jwt_secret as Secret,
-    config.jwt.expires_in as string,
+    Number(config.jwt.expires_in),
   );
 
   const refreshToken = jwtHelpers.generateToken(
     { id: user.id, email: user.email },
     config.jwt.refresh_token_secret as Secret,
-    config.jwt.refresh_token_expires_in as string,
+    Number(config.jwt.expires_in),
   );
 
   await prisma.user.update({ where: { id: user.id }, data: { refreshToken } });
@@ -51,6 +51,7 @@ const loginUserFromDB = async ({
 
 const logoutUser = async (id: string) => {
   const user = await prisma.user.findUnique({ where: { id } });
+
   if (!user) throw new ApiError(httpStatus.BAD_REQUEST, 'User not found');
 
   await prisma.user.update({ where: { id }, data: { refreshToken: null } });
@@ -71,13 +72,13 @@ const refreshAccessToken = async (token: string) => {
     const newAccessToken = jwtHelpers.generateToken(
       { id: user.id, email: user.email },
       config.jwt.jwt_secret as Secret,
-      config.jwt.expires_in as string,
+      Number(config.jwt.expires_in),
     );
 
     const newRefreshToken = jwtHelpers.generateToken(
       { id: user.id, email: user.email },
       config.jwt.refresh_token_secret as Secret,
-      config.jwt.refresh_token_expires_in as string,
+      Number(config.jwt.refresh_token_expires_in),
     );
 
     await prisma.user.update({

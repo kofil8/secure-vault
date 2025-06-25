@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextFunction, Request, Response } from 'express';
 
 import config from '../../config';
@@ -28,7 +29,7 @@ const auth = (...roles: string[]) => {
       const verifiedUser = jwtHelpers.verifyToken(
         token,
         config.jwt.jwt_secret as Secret,
-      );
+      ) as JwtPayload;
 
       const { id } = verifiedUser;
 
@@ -42,7 +43,7 @@ const auth = (...roles: string[]) => {
         throw new ApiError(httpStatus.NOT_FOUND, 'User not found!');
       }
 
-      req.user = verifiedUser as JwtPayload;
+      req["user"] = verifiedUser as any;
 
       if (roles.length && !roles.includes(verifiedUser.role)) {
         throw new ApiError(httpStatus.FORBIDDEN, 'Forbidden!');

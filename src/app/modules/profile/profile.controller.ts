@@ -8,7 +8,9 @@ import sendResponse from '../../utils/sendResponse';
 import { ProfileServices } from './profile.service';
 
 const getMyProfile = catchAsync(async (req: Request, res: Response) => {
-  const id = req.user.id;
+  
+  const id = req.user?.id as string;
+
   const result = await ProfileServices.getMyProfileFromDB(id);
 
   sendResponse(res, {
@@ -17,12 +19,13 @@ const getMyProfile = catchAsync(async (req: Request, res: Response) => {
     message: 'Profile retrieved successfully',
     data: result,
   });
+  
 });
 
 const updateMyProfile = catchAsync(async (req: Request, res: Response) => {
-  const id = req.user.id;
+  const id = req.user?.id as string;
   const payload = req.body.bodyData;
-  const file = req.file as any;
+  const file = req.file as Express.Multer.File | undefined;
   const result = await ProfileServices.updateMyProfileIntoDB(id, payload, file);
 
   sendResponse(res, {
@@ -40,7 +43,7 @@ const forgotPassword = catchAsync(async (req: Request, res: Response) => {
   const accessToken = jwtHelpers.generateToken(
     { id: user.id, email: user.email },
     config.jwt.jwt_secret as Secret,
-    config.jwt.expires_in as string,
+    Number(config.jwt.expires_in),
   );
 
   sendResponse(res, {
@@ -64,7 +67,7 @@ const resetPassword = catchAsync(async (req: Request, res: Response) => {
 });
 
 const changePassword = catchAsync(async (req: Request, res: Response) => {
-  const id = req.user.id;
+  const id = req.user?.id as string;
   const { oldPassword, newPassword } = req.body;
   const result = await ProfileServices.changePassword(
     id,
@@ -82,7 +85,7 @@ const changePassword = catchAsync(async (req: Request, res: Response) => {
 
 const updateSecurityAnswers = catchAsync(
   async (req: Request, res: Response) => {
-    const id = req.user.id;
+    const id = req.user?.id as string;
     const answers = req.body.answers;
     const result = await ProfileServices.updateSecurityAnswers(id, answers);
 

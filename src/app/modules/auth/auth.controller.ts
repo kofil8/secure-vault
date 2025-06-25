@@ -2,8 +2,9 @@ import httpStatus from 'http-status';
 import catchAsync from '../../utils/catchAsync';
 import sendResponse from '../../utils/sendResponse';
 import { AuthServices } from './auth.service';
+import { Request, RequestHandler, Response } from 'express';
 
-const loginUser = catchAsync(async (req, res) => {
+const loginUser:RequestHandler = catchAsync(async (req, res) => {
   
   const { email, password } = req.body;
 
@@ -29,8 +30,10 @@ const loginUser = catchAsync(async (req, res) => {
   });
 });
 
-const logoutUser = catchAsync(async (req, res) => {
-  const id = req.user.id;
+const logoutUser = catchAsync(async (req:Request, res:Response) => {
+
+  const id = req.user?.id as string;
+
   await AuthServices.logoutUser(id);
 
   sendResponse(res, {

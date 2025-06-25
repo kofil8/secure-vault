@@ -9,7 +9,7 @@ import { fileType } from '@prisma/client';
 // Create a new file
 const createFile = catchAsync(async (req: Request, res: Response) => {
   const payload = req.body;
-  const userId = req.user.id;
+  const userId = req.user?.id;
   payload.userId = userId;
   const file = await fileService.createFile(payload);
 

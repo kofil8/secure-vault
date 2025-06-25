@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import bcrypt from 'bcrypt';
 import httpStatus from 'http-status';
 import config from '../../../config';
@@ -49,6 +51,7 @@ const forgotPassword = async (email: string, answers: string[]) => {
     user.securityAnswer2,
     user.securityAnswer3,
   ];
+
   const matched = correctAnswers.every((ans, idx) => ans === answers[idx]);
 
   if (!matched)
