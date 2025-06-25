@@ -1,7 +1,7 @@
 import httpStatus from 'http-status';
-import { AuthServices } from './auth.service';
 import catchAsync from '../../utils/catchAsync';
 import sendResponse from '../../utils/sendResponse';
+import { AuthServices } from './auth.service';
 
 const loginUser = catchAsync(async (req, res) => {
   const { email, password } = req.body;
@@ -28,7 +28,15 @@ const logoutUser = catchAsync(async (req, res) => {
 });
 
 const refreshToken = catchAsync(async (req, res) => {
-  const token = req.body.refreshToken;
+  const authHeader = req.headers.authorization;
+  if (!authHeader?.startsWith('Bearer ')) {
+    return res.status(httpStatus.UNAUTHORIZED).json({
+      success: false,
+      message: 'Authorization token missing',
+    });
+  }
+
+  const token = authHeader.split(' ')[1];
   const result = await AuthServices.refreshAccessToken(token);
 
   sendResponse(res, {

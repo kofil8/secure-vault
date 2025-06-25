@@ -14,7 +14,11 @@ const generateToken = (
 };
 
 const verifyToken = (token: string, secret: Secret): JwtPayload => {
-  return jwt.verify(token, secret) as JwtPayload;
+  try {
+    return jwt.verify(token, secret) as JwtPayload;
+  } catch (err) {
+    throw new Error('Invalid or expired token');
+  }
 };
 
 export const jwtHelpers = {
