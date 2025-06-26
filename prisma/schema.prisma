@@ -36,7 +36,6 @@ model User {
   @@map("users")
 }
 
-<<<<<<< Updated upstream
 model file {
   id        String    @id @default(auto()) @map("_id") @db.ObjectId
   userId    String    @db.ObjectId
@@ -49,22 +48,6 @@ model file {
   deletedAt DateTime? // Soft delete support
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
-=======
-model File {
-  id         String    @id @default(auto()) @map("_id") @db.ObjectId
-  userId     String    @db.ObjectId
-  user       User      @relation(fields: [userId], references: [id])
-  fileName   String
-  fileType   fileType
-  fileSize   Int
-  fileUrl    String
-  filePath   String?
-  isDeleted  Boolean   @default(false)
-  isFavorite Boolean   @default(false)
-  deletedAt  DateTime?
-  createdAt  DateTime  @default(now())
-  updatedAt  DateTime  @updatedAt
->>>>>>> Stashed changes
 
   @@map("files")
 }
