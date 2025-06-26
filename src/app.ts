@@ -8,7 +8,7 @@ import path from 'path';
 import GlobalErrorHandler from './app/middlewares/globalErrorHandler';
 import { defaultLimiter } from './app/middlewares/rateLimit';
 import router from './app/routes';
-import logger from './app/utils/logger';
+// import logger from './app/utils/logger';
 
 const app: Application = express();
 const morganFormat = ':method :url :status :response-time ms';
@@ -33,23 +33,23 @@ app.use(defaultLimiter);
 // 📂 Static files
 app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 
-// 📋 Logging
-app.use(morgan('dev'));
-app.use(
-  morgan(morganFormat, {
-    stream: {
-      write: (message) => {
-        const logObject = {
-          method: message.split(' ')[0],
-          url: message.split(' ')[1],
-          status: message.split(' ')[2],
-          responseTime: message.split(' ')[3],
-        };
-        logger.info(JSON.stringify(logObject));
-      },
-    },
-  }),
-);
+// // 📋 Logging
+// app.use(morgan('dev'));
+// app.use(
+//   morgan(morganFormat, {
+//     stream: {
+//       write: (message) => {
+//         const logObject = {
+//           method: message.split(' ')[0],
+//           url: message.split(' ')[1],
+//           status: message.split(' ')[2],
+//           responseTime: message.split(' ')[3],
+//         };
+//         logger.info(JSON.stringify(logObject));
+//       },
+//     },
+//   }),
+// );
 
 // 🌐 Base route
 app.get('/', (_req, res: Response) => {
