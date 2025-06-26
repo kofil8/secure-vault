@@ -1,7 +1,7 @@
 import jwt, { Secret, SignOptions } from 'jsonwebtoken';
 
 export const generateTokenReset = (
-  payload: { id: string; email: string; isVerified: boolean },
+  payload: { id: string; email: string },
   secret: Secret,
   expiresIn: string,
 ) => {
