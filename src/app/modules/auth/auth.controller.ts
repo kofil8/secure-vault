@@ -2,10 +2,28 @@ import httpStatus from 'http-status';
 import catchAsync from '../../utils/catchAsync';
 import sendResponse from '../../utils/sendResponse';
 import { AuthServices } from './auth.service';
+import { Request, RequestHandler, Response } from 'express';
 
-const loginUser = catchAsync(async (req, res) => {
+const loginUser: RequestHandler = catchAsync(async (req, res) => {
   const { email, password } = req.body;
+
   const result = await AuthServices.loginUserFromDB({ email, password });
+
+  res.cookie('accessToken', result.accessToken, {
+    httpOnly: true,
+    secure: false,
+    maxAge: 60 * 60 * 24 * 7,
+    path: '/',
+    sameSite: 'lax',
+  });
+
+  res.cookie('refreshToken', result.accessToken, {
+    httpOnly: true,
+    secure: false,
+    maxAge: 60 * 60 * 24 * 7,
+    path: '/',
+    sameSite: 'lax',
+  });
 
   sendResponse(res, {
     statusCode: httpStatus.OK,
@@ -15,8 +33,8 @@ const loginUser = catchAsync(async (req, res) => {
   });
 });
 
-const logoutUser = catchAsync(async (req, res) => {
-  const id = req.user.id;
+const logoutUser = catchAsync(async (req: Request, res: Response) => {
+  const id = req.user?.id as string;
   await AuthServices.logoutUser(id);
 
   sendResponse(res, {
