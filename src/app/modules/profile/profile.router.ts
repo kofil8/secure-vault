@@ -2,7 +2,7 @@ import express from 'express';
 import { ProfileControllers } from './profile.controller';
 import { auth } from '../../middlewares/auth';
 import { authReset } from '../../middlewares/authReset';
-import { fileUploader } from '../../../helpars/fileUploader';
+import upload from '../../../helpars/fileUploader';
 import parseBodyData from '../../../helpars/parseBodyData';
 
 const router = express.Router();
@@ -13,7 +13,11 @@ router.patch(
   '/update',
   auth(),
   parseBodyData,
+<<<<<<< Updated upstream
   fileUploader.uploadprofileImage,
+=======
+  upload.single('image'),
+>>>>>>> Stashed changes
   ProfileControllers.updateMyProfile,
 );
 router.patch('/change-password', auth(), ProfileControllers.changePassword);
