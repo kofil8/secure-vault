@@ -1,10 +1,9 @@
-// file.routes.ts
 import express from 'express';
-import auth from '../../middlewares/auth';
 import validateRequest from '../../middlewares/validateRequest';
 import { fileController } from './file.controller';
 import { fileValidation } from './file.validation';
 import upload from '../../../helpars/fileUploader';
+import { auth } from '../../middlewares/auth';
 
 const router = express.Router();
 

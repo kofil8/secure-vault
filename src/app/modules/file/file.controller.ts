@@ -5,50 +5,66 @@ import { fileService } from './file.service';
 import sendResponse from '../../utils/sendResponse';
 import pick from '../../../helpars/pick';
 import { fileType } from '@prisma/client';
+import config from '../../../config';
 
 const createFile = catchAsync(async (req: Request, res: Response) => {
   const userId = req.user?.id;
+  const uploadedFiles: Express.Multer.File[] = [];
 
-  if (req.files && Array.isArray(req.files) && req.files.length > 0) {
-    const files = req.files.map((file: Express.Multer.File) => ({
+  const filesField = req.files as
+    | { [key: string]: Express.Multer.File[] }
+    | undefined;
+
+  if (filesField) {
+    if (Array.isArray(filesField['file']))
+      uploadedFiles.push(...filesField['file']);
+    if (Array.isArray(filesField['files']))
+      uploadedFiles.push(...filesField['files']);
+  }
+
+  if (uploadedFiles.length > 1) {
+    const files = uploadedFiles.map((file) => ({
       fileName: file.originalname,
       fileType: getFileType(file.mimetype),
       fileSize: file.size,
-      fileUrl: `/uploads/${file.filename}`,
+      fileUrl: `${config.backend_base_url}/uploads/${file.filename}`,
       filePath: file.path,
       userId: userId as string,
     }));
 
     const result = await fileService.createMultipleFiles(files);
 
-    sendResponse(res, {
+    return sendResponse(res, {
       statusCode: httpStatus.CREATED,
       success: true,
       message: 'Multiple files uploaded successfully',
       data: result,
     });
-  } else if (req.file) {
-    const file = req.file;
+  }
+
+  if (uploadedFiles.length === 1) {
+    const file = uploadedFiles[0];
+
     const payload = {
       fileName: file.originalname,
       fileType: getFileType(file.mimetype),
       fileSize: file.size,
-      fileUrl: `/uploads/${file.filename}`,
+      fileUrl: `${config.backend_base_url}/uploads/${file.filename}`,
       filePath: file.path,
       user: { connect: { id: userId } },
     };
 
     const result = await fileService.createFile(payload);
 
-    sendResponse(res, {
+    return sendResponse(res, {
       statusCode: httpStatus.CREATED,
       success: true,
       message: 'File uploaded successfully',
       data: result,
     });
-  } else {
-    throw new Error('No file uploaded');
   }
+
+  throw new Error('No file uploaded');
 });
 
 const getFileType = (mimeType: string): fileType => {
@@ -59,7 +75,7 @@ const getFileType = (mimeType: string): fileType => {
     return 'xlsx';
   if (mimeType.includes('presentationml')) return 'pptx';
   if (mimeType.includes('image')) return 'image';
-  throw new Error('Unsupported file type');
+  throw new Error(`Unsupported file type: ${mimeType}`);
 };
 
 const getAllFiles = catchAsync(async (req: Request, res: Response) => {

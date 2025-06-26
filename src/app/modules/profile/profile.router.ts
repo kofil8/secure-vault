@@ -13,11 +13,7 @@ router.patch(
   '/update',
   auth(),
   parseBodyData,
-<<<<<<< Updated upstream
-  fileUploader.uploadprofileImage,
-=======
   upload.single('image'),
->>>>>>> Stashed changes
   ProfileControllers.updateMyProfile,
 );
 router.patch('/change-password', auth(), ProfileControllers.changePassword);
