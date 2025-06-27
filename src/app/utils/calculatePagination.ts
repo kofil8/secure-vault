@@ -8,14 +8,14 @@ export interface IOptionsResult {
   sortOrder: string;
 }
 
-export const calculatePagination = (options: IPaginationOptions) => {
-  const page = options.page && options.page > 0 ? options.page : 1;
-  const limit = options.limit && options.limit > 0 ? options.limit : 10;
+export const calculatePagination = (options?: IPaginationOptions) => {
+  const page = options?.page && options.page > 0 ? options.page : 1;
+  const limit = options?.limit && options.limit > 0 ? options.limit : 10;
   const skip = (page - 1) * limit;
 
-  const sortBy = options.sortBy;
+  const sortBy = options?.sortBy || 'createdAt';
   const sortOrder: 'asc' | 'desc' =
-    options.sortOrder === 'desc' ? 'desc' : 'asc';
+    options?.sortOrder === 'desc' ? 'desc' : 'asc';
 
   return { page, limit, skip, sortBy, sortOrder };
 };

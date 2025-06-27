@@ -15,10 +15,6 @@ const moduleRoutes = [
     route: fileRoutes,
   },
   {
-    path: '/auth',
-    route: AuthRouters,
-  },
-  {
     path: '/profile',
     route: ProfileRouters,
   },

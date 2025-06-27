@@ -31,23 +31,32 @@ model User {
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
-  files file[]
+  files          File[]
+  lastSavedFiles File[] @relation("LastSavedBy")
 
   @@map("users")
 }
 
-model file {
-  id        String    @id @default(auto()) @map("_id") @db.ObjectId
-  userId    String    @db.ObjectId
-  user      User      @relation(fields: [userId], references: [id])
-  fileName  String
-  fileType  fileType
-  fileSize  Int
-  fileUrl   String // If only URL
-  filePath  String
-  deletedAt DateTime? // Soft delete support
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+model File {
+  id         String    @id @default(auto()) @map("_id") @db.ObjectId
+  userId     String    @db.ObjectId
+  user       User      @relation(fields: [userId], references: [id])
+  fileName   String
+  fileType   fileType
+  fileSize   Int
+  fileUrl    String // publicly accessible URL
+  filePath   String? // server path
+  fileBlob   String? // optional base64 blob
+  isFavorite Boolean   @default(false)
+  isDeleted  Boolean   @default(false)
+  deletedAt  DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  version       Int       @default(1)
+  lastSavedAt   DateTime?
+  lastSavedById String?   @db.ObjectId
+  lastSavedBy   User?     @relation("LastSavedBy", fields: [lastSavedById], references: [id])
 
   @@map("files")
 }

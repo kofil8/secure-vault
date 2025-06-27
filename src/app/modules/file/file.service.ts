@@ -1,4 +1,4 @@
-import { Prisma, fileType, File } from '@prisma/client';
+import { Prisma, fileType } from '@prisma/client';
 import prisma from '../../helpers/prisma';
 import ApiError from '../../errors/ApiError';
 import { IPaginationOptions } from '../../interfaces/paginations';
@@ -10,10 +10,15 @@ const createFile = async (data: Prisma.FileCreateInput) => {
   return file;
 };
 
-const createMultipleFiles = async (data: Prisma.FileCreateManyInput[]) => {
-  const files = await prisma.file.createMany({ data });
-  if (!files) throw new ApiError(500, 'Multiple file upload failed');
-  return files;
+const createMultipleFiles = async (data: Prisma.FileCreateInput[]) => {
+  try {
+    const result = await Promise.all(
+      data.map((file) => prisma.file.create({ data: file })),
+    );
+    return result;
+  } catch (error) {
+    throw new ApiError(500, 'Multiple file upload failed');
+  }
 };
 
 const getAllFiles = async ({
@@ -21,13 +26,13 @@ const getAllFiles = async ({
   filetype,
   isFavourite,
   searchTerm,
-  paginations,
+  paginations = { page: 1, limit: 10, sortBy: 'createdAt', sortOrder: 'desc' },
 }: {
   trash?: boolean;
   filetype?: fileType;
   isFavourite?: boolean;
   searchTerm?: string;
-  paginations: IPaginationOptions;
+  paginations?: IPaginationOptions;
 }) => {
   const { page, limit, skip, sortBy, sortOrder } =
     calculatePagination(paginations);
@@ -58,7 +63,9 @@ const getAllFiles = async ({
 };
 
 const getFileById = async (id: string) => {
-  return await prisma.file.findUnique({ where: { id } });
+  const file = await prisma.file.findUnique({ where: { id } });
+  if (!file) throw new ApiError(404, 'File not found');
+  return file;
 };
 
 const getFilesByUserId = async (userId: string) => {
@@ -68,17 +75,21 @@ const getFilesByUserId = async (userId: string) => {
 };
 
 const deleteFile = async (id: string) => {
-  return await prisma.file.update({
+  const file = await prisma.file.update({
     where: { id },
     data: { isDeleted: true, deletedAt: new Date() },
   });
+  if (!file) throw new ApiError(404, 'File not found');
+  return file;
 };
 
 const restoreFile = async (id: string) => {
-  return await prisma.file.update({
+  const file = await prisma.file.update({
     where: { id },
     data: { isDeleted: false, deletedAt: null },
   });
+  if (!file) throw new ApiError(404, 'File not found');
+  return file;
 };
 
 const restoreMultipleFiles = async (ids: string[]) => {
@@ -93,12 +104,13 @@ const restoreMultipleFiles = async (ids: string[]) => {
       deletedAt: null,
     },
   });
-
   return result.count;
 };
 
 const hardDeleteFile = async (id: string) => {
-  return await prisma.file.delete({ where: { id } });
+  const file = await prisma.file.delete({ where: { id } });
+  if (!file) throw new ApiError(404, 'File not found');
+  return file;
 };
 
 const updateFile = async (
@@ -109,18 +121,35 @@ const updateFile = async (
     fileSize: number;
     fileUrl: string;
     filePath: string | null;
+    fileBlob: string;
+    version: number;
+    lastSavedAt: Date;
+    lastSavedById: string;
   }>,
 ) => {
-  const updated = await prisma.file.update({ where: { id }, data });
+  const updateData: Prisma.FileUpdateInput = { ...data };
+
+  // Special handling for optional fields
+  if ('filePath' in data) {
+    updateData.filePath = { set: data.filePath ?? null };
+  }
+
+  const updated = await prisma.file.update({
+    where: { id },
+    data: updateData,
+  });
+
   if (!updated) throw new ApiError(500, 'File update failed');
   return updated;
 };
 
 const makeFavourite = async (id: string) => {
-  return await prisma.file.update({
+  const file = await prisma.file.update({
     where: { id },
     data: { isFavorite: true },
   });
+  if (!file) throw new ApiError(404, 'File not found');
+  return file;
 };
 
 export const fileService = {

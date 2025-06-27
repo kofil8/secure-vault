@@ -12,17 +12,14 @@ router.post(
   '/',
   auth(),
   upload.fields([
-    { name: 'file', maxCount: 1 }, // for single
-    { name: 'files', maxCount: 10 }, // for multiple
+    { name: 'file', maxCount: 1 }, // single upload
+    { name: 'files', maxCount: 10 }, // multiple upload
   ]),
   fileController.createFile,
 );
 
-// Get all files (non-deleted)
+// Get all non-deleted files
 router.get('/', auth(), fileController.getAllFiles);
-
-// Get single file by ID
-router.get('/:fileId', auth(), fileController.getFileById);
 
 // Get all files uploaded by a specific user
 router.get('/user/:userId', auth(), fileController.getFilesByUserId);
@@ -33,7 +30,7 @@ router.delete('/:fileId', auth(), fileController.deleteFile);
 // Restore a soft-deleted file
 router.patch('/restore/:fileId', auth(), fileController.restoreFile);
 
-// Restore multiple soft-deleted files
+// Restore multiple files
 router.patch(
   '/restore-multiple',
   auth(),
@@ -41,7 +38,7 @@ router.patch(
   fileController.restoreMultipleFiles,
 );
 
-// Permanently delete a file (hard delete)
+// Hard delete
 router.delete('/permanent/:fileId', auth(), fileController.hardDeleteFile);
 
 // Update file metadata
@@ -52,7 +49,16 @@ router.patch(
   fileController.updateFile,
 );
 
-// Mark/unmark as favorite
+// Mark or unmark file as favorite
 router.patch('/favourite/:fileId', auth(), fileController.makeFavourite);
+
+// ✅ OnlyOffice Editor Config
+router.post('/editor-config/:fileId', auth(), fileController.getEditorConfig);
+
+// ✅ Save Callback (for OnlyOffice save events - Step 6)
+router.post('/save-callback/:fileId', fileController.handleSaveCallback);
+
+// Get a file by ID
+router.get('/:fileId', auth(), fileController.getFileById);
 
 export const fileRoutes = router;
