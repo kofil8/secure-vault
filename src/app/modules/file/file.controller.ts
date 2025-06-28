@@ -9,14 +9,17 @@ import fs from 'fs/promises';
 import axios from 'axios';
 import ApiError from '../../errors/ApiError';
 
+// Create a file (either single or multiple files)
 const createFile = catchAsync(async (req: Request, res: Response) => {
   const userId = req.user?.id;
   const uploadedFiles: Express.Multer.File[] = [];
 
+  // Handle file fields uploaded in the request
   const filesField = req.files as
     | { [key: string]: Express.Multer.File[] }
     | undefined;
 
+  // Collect files from request
   if (filesField) {
     if (Array.isArray(filesField['file']))
       uploadedFiles.push(...filesField['file']);
@@ -24,6 +27,7 @@ const createFile = catchAsync(async (req: Request, res: Response) => {
       uploadedFiles.push(...filesField['files']);
   }
 
+  // If more than 1 file is uploaded, create multiple file records
   if (uploadedFiles.length > 1) {
     const files = uploadedFiles.map((file) => ({
       fileName: file.originalname,
@@ -57,6 +61,7 @@ const createFile = catchAsync(async (req: Request, res: Response) => {
     }
   }
 
+  // If only one file is uploaded, create a single file record
   if (uploadedFiles.length === 1) {
     const file = uploadedFiles[0];
     const payload = {
@@ -90,6 +95,7 @@ const createFile = catchAsync(async (req: Request, res: Response) => {
   throw new Error('No file uploaded');
 });
 
+// Helper function to determine file type based on MIME type
 const getFileType = (mimeType: string): fileType => {
   if (mimeType.includes('pdf')) return 'pdf';
   if (mimeType.includes('msword') || mimeType.includes('wordprocessingml'))
@@ -100,6 +106,7 @@ const getFileType = (mimeType: string): fileType => {
   throw new Error(`Unsupported file type: ${mimeType}`);
 };
 
+// Get all files (not deleted)
 const getAllFiles = catchAsync(async (req: Request, res: Response) => {
   const files = await fileService.getAllFiles(req.query);
   sendResponse(res, {
@@ -110,6 +117,7 @@ const getAllFiles = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+// Get a file by its ID
 const getFileById = catchAsync(async (req: Request, res: Response) => {
   const file = await fileService.getFileById(req.params.fileId);
   sendResponse(res, {
@@ -120,6 +128,7 @@ const getFileById = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+// Get all files uploaded by a specific user
 const getFilesByUserId = catchAsync(async (req: Request, res: Response) => {
   const files = await fileService.getFilesByUserId(req.params.userId);
   sendResponse(res, {
@@ -130,6 +139,7 @@ const getFilesByUserId = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+// Soft delete a file
 const deleteFile = catchAsync(async (req: Request, res: Response) => {
   const file = await fileService.deleteFile(req.params.fileId);
   sendResponse(res, {
@@ -140,6 +150,7 @@ const deleteFile = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+// Restore a soft-deleted file
 const restoreFile = catchAsync(async (req: Request, res: Response) => {
   const file = await fileService.restoreFile(req.params.fileId);
   sendResponse(res, {
@@ -150,6 +161,7 @@ const restoreFile = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+// Restore multiple files
 const restoreMultipleFiles = catchAsync(async (req: Request, res: Response) => {
   const ids = req.body.ids || [];
   const count = await fileService.restoreMultipleFiles(ids);
@@ -161,6 +173,7 @@ const restoreMultipleFiles = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+// Hard delete a file (permanent removal)
 const hardDeleteFile = catchAsync(async (req: Request, res: Response) => {
   await fileService.hardDeleteFile(req.params.fileId);
   sendResponse(res, {
@@ -171,6 +184,7 @@ const hardDeleteFile = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+// Update file metadata (name, type, size, etc.)
 const updateFile = catchAsync(async (req: Request, res: Response) => {
   const updated = await fileService.updateFile(req.params.fileId, req.body);
   sendResponse(res, {
@@ -181,6 +195,7 @@ const updateFile = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+// Mark/unmark a file as a favorite
 const makeFavourite = catchAsync(async (req: Request, res: Response) => {
   const result = await fileService.makeFavourite(req.params.fileId);
   sendResponse(res, {
@@ -193,6 +208,7 @@ const makeFavourite = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+// Get OnlyOffice editor configuration for a specific file
 const getEditorConfig = catchAsync(async (req: Request, res: Response) => {
   const { fileId } = req.params;
   const user = req.user;
@@ -228,6 +244,7 @@ const getEditorConfig = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+// Handle file save callback from OnlyOffice
 const handleSaveCallback = catchAsync(async (req: Request, res: Response) => {
   const { fileId } = req.params;
   const { status, url, users = [] } = req.body;

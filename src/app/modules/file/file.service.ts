@@ -3,6 +3,9 @@ import prisma from '../../helpers/prisma';
 import ApiError from '../../errors/ApiError';
 import { IPaginationOptions } from '../../interfaces/paginations';
 import { calculatePagination } from '../../utils/calculatePagination';
+import fs from 'fs/promises';
+import axios from 'axios';
+import config from '../../../config';
 
 const createFile = async (data: Prisma.FileCreateInput) => {
   const file = await prisma.file.create({ data });
@@ -152,6 +155,60 @@ const makeFavourite = async (id: string) => {
   return file;
 };
 
+// Get the configuration for opening the document in OnlyOffice editor
+const getEditorConfig = async (fileId: string, user: any) => {
+  const file = await prisma.file.findUnique({ where: { id: fileId } });
+  if (!file || !file.fileUrl) {
+    throw new ApiError(404, 'File not found or missing fileUrl');
+  }
+
+  const configData = {
+    document: {
+      title: file.fileName,
+      fileType: file.fileType,
+      url: `${file.fileUrl}`,
+      key: `${file.id}-${file.version}`,
+      permissions: { edit: true },
+    },
+    documentType: file.fileType === 'excel' ? 'spreadsheet' : 'text',
+    editorConfig: {
+      callbackUrl: `${config.backend_base_url}/api/files/save-callback/${file.id}`,
+      user: {
+        id: user?.id,
+        email: user?.email || 'Anonymous',
+      },
+    },
+  };
+
+  return configData;
+};
+
+// Save the file after editing in OnlyOffice
+const handleSaveCallback = async (
+  fileId: string,
+  url: string,
+  users: string[],
+) => {
+  const file = await prisma.file.findUnique({ where: { id: fileId } });
+  if (!file) throw new ApiError(404, 'File not found');
+
+  const response = await axios.get(url, { responseType: 'arraybuffer' });
+  const buffer = Buffer.from(response.data as ArrayBuffer);
+  const base64 = buffer.toString('base64');
+
+  const updatedFile = await prisma.file.update({
+    where: { id: fileId },
+    data: {
+      fileBlob: base64,
+      version: file.version + 1,
+      lastSavedAt: new Date(),
+      lastSavedById: users[0] || undefined,
+    },
+  });
+
+  return updatedFile;
+};
+
 export const fileService = {
   createFile,
   createMultipleFiles,
@@ -164,4 +221,6 @@ export const fileService = {
   hardDeleteFile,
   updateFile,
   makeFavourite,
+  getEditorConfig,
+  handleSaveCallback,
 };

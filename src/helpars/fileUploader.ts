@@ -49,6 +49,7 @@ const fileFilter = (
 };
 
 const upload = multer({
+  dest: uploadPath,
   storage,
   fileFilter,
   limits: { fileSize: MAX_FILE_SIZE },
