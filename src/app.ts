@@ -8,7 +8,7 @@ import path from 'path';
 import GlobalErrorHandler from './app/middlewares/globalErrorHandler';
 import { defaultLimiter } from './app/middlewares/rateLimit';
 import router from './app/routes';
-import logger from './app/utils/logger';
+// import logger from './app/utils/logger';
 
 const app: Application = express();
 const morganFormat = ':method :url :status :response-time ms';

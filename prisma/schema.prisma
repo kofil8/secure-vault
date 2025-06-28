@@ -10,7 +10,7 @@ datasource db {
 enum fileType {
   pdf
   docx
-  excel
+  xlsx
   png
   jpg
   jpeg

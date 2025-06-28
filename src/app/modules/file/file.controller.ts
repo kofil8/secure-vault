@@ -1,4 +1,3 @@
-import { Request, Response } from 'express';
 import httpStatus from 'http-status';
 import catchAsync from '../../utils/catchAsync';
 import { fileService } from './file.service';
@@ -8,6 +7,16 @@ import config from '../../../config';
 import fs from 'fs/promises';
 import axios from 'axios';
 import ApiError from '../../errors/ApiError';
+import { v4 as uuidv4 } from 'uuid';
+import path from 'path';
+import {
+  generateBlankDocx,
+  generateBlankXlsx,
+  generateBlankPdf,
+} from '../../../helpars/fileGenerator';
+import { Request, Response } from 'express';
+import { PrismaClient } from '@prisma/client';
+const prisma = new PrismaClient();
 
 // Create a file (either single or multiple files)
 const createFile = catchAsync(async (req: Request, res: Response) => {
@@ -101,7 +110,7 @@ const getFileType = (mimeType: string): fileType => {
   if (mimeType.includes('msword') || mimeType.includes('wordprocessingml'))
     return 'docx';
   if (mimeType.includes('excel') || mimeType.includes('spreadsheetml'))
-    return 'excel';
+    return 'xlsx';
   if (mimeType.includes('image')) return 'png';
   throw new Error(`Unsupported file type: ${mimeType}`);
 };
@@ -226,7 +235,7 @@ const getEditorConfig = catchAsync(async (req: Request, res: Response) => {
       key: `${file.id}-${file.version}`,
       permissions: { edit: true },
     },
-    documentType: file.fileType === 'excel' ? 'spreadsheet' : 'text',
+    documentType: file.fileType === 'xlsx' ? 'spreadsheet' : 'text',
     editorConfig: {
       callbackUrl: `${config.backend_base_url}/api/files/save-callback/${file.id}`,
       user: {
@@ -270,6 +279,65 @@ const handleSaveCallback = catchAsync(async (req: Request, res: Response) => {
   res.status(200).json({ message: 'File saved successfully' });
 });
 
+const createBlankFile = async (req: Request, res: Response): Promise<void> => {
+  const { type } = req.params as { type: 'docx' | 'xlsx' | 'pdf' };
+  const user = req.user as { id: string; email: string };
+
+  if (!user || !user.id) {
+    res.status(401).send('Unauthorized');
+    return;
+  }
+
+  let buffer: Buffer;
+  if (type === 'docx') {
+    buffer = await generateBlankDocx();
+  } else if (type === 'xlsx') {
+    buffer = await generateBlankXlsx();
+  } else if (type === 'pdf') {
+    buffer = generateBlankPdf();
+  } else {
+    res.status(400).send('Invalid file type');
+    return;
+  }
+
+  // 1. Create DB record first (with empty fileUrl/filePath)
+  const file = await prisma.file.create({
+    data: {
+      userId: user.id,
+      fileName: `Untitled.${type}`,
+      fileType: type,
+      fileSize: buffer.length,
+      version: 1,
+      fileBlob: buffer.toString('base64'),
+      fileUrl: '', // Temporary, will update after file is written
+      filePath: '', // Temporary, will update after file is written
+    },
+  });
+
+  // 2. Use file.id for the filename
+  const uploadsDir = path.join(__dirname, '..', 'uploads');
+  await fs.mkdir(uploadsDir, { recursive: true });
+  const filePath = path.join(uploadsDir, `${file.id}.${type}`);
+  await fs.writeFile(filePath, buffer);
+
+  // 3. Update DB record with fileUrl and filePath
+  await prisma.file.update({
+    where: { id: file.id },
+    data: {
+      fileUrl: `${config.backend_base_url}/uploads/${file.id}.${type}`,
+      filePath,
+    },
+  });
+
+  // 4. Return a response with the file URL to open
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: 'File created successfully',
+    data: { url: `/uploads/${file.id}.${type}` },
+  });
+};
+
 export const fileController = {
   createFile,
   getAllFiles,
@@ -283,4 +351,5 @@ export const fileController = {
   makeFavourite,
   getEditorConfig,
   handleSaveCallback,
+  createBlankFile,
 };
