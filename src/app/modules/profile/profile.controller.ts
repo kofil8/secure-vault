@@ -1,8 +1,5 @@
 import { Request, Response } from 'express';
 import httpStatus from 'http-status';
-import { Secret, SignOptions } from 'jsonwebtoken';
-import config from '../../../config';
-import { jwtHelpers } from '../../helpers/jwtHelpers';
 import catchAsync from '../../utils/catchAsync';
 import sendResponse from '../../utils/sendResponse';
 import { ProfileServices } from './profile.service';
@@ -36,9 +33,9 @@ const updateMyProfile = catchAsync(async (req: Request, res: Response) => {
 
 const changePassword = catchAsync(async (req: Request, res: Response) => {
   const id = req.user?.id as string;
-  const { oldPassword, newPassword } = req.body;
+  const { currentPassword, newPassword } = req.body;
 
-  await ProfileServices.changePassword(id, oldPassword, newPassword);
+  await ProfileServices.changePassword(id, currentPassword, newPassword);
 
   sendResponse(res, {
     statusCode: httpStatus.OK,

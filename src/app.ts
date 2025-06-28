@@ -14,7 +14,7 @@ const app: Application = express();
 const morganFormat = ':method :url :status :response-time ms';
 
 const corsOptions = {
-  origin: ['*'],
+  origin: ['http://localhost:3000'],
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
   allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true,
