@@ -17,19 +17,19 @@ enum fileType {
 }
 
 model User {
-  id              String   @id @default(auto()) @map("_id") @db.ObjectId
-  email           String   @unique
-  password        String
-  name            String
-  phoneNumber     String?
-  profileImage    String?
-  bio             String?
-  refreshToken    String?
-  securityAnswer1 String?
-  securityAnswer2 String?
-  securityAnswer3 String?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  id                  String   @id @default(auto()) @map("_id") @db.ObjectId
+  email               String   @unique
+  password            String
+  name                String
+  phoneNumber         String?
+  profileImage        String?
+  bio                 String?
+  refreshToken        String?
+  securityAnswer1Hash String? // normalized + hashed
+  securityAnswer2Hash String?
+  securityAnswer3Hash String?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
 
   files          File[]
   lastSavedFiles File[] @relation("LastSavedBy")
