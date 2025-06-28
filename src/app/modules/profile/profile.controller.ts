@@ -34,73 +34,7 @@ const updateMyProfile = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
-const forgotPassword = catchAsync(async (req: Request, res: Response) => {
-  const { email, answers } = req.body;
-  const user = await ProfileServices.forgotPassword(email, answers);
-
-  const accessToken = jwtHelpers.generateToken(
-    { id: user.id, email: user.email },
-    config.jwt.jwt_secret as Secret,
-    config.jwt.expires_in as SignOptions['expiresIn'],
-  );
-
-  sendResponse(res, {
-    statusCode: httpStatus.OK,
-    success: true,
-    message: 'Security questions matched successfully',
-    data: { accessToken },
-  });
-});
-
-const resetPassword = catchAsync(async (req: Request, res: Response) => {
-  const { email, newPassword } = req.body;
-  const result = await ProfileServices.resetPassword(email, newPassword);
-
-  sendResponse(res, {
-    statusCode: httpStatus.OK,
-    success: true,
-    message: 'Password reset successfully',
-    data: result,
-  });
-});
-
-const changePassword = catchAsync(async (req: Request, res: Response) => {
-  const id = req.user?.id as string;
-  const { oldPassword, newPassword } = req.body;
-  const result = await ProfileServices.changePassword(
-    id,
-    oldPassword,
-    newPassword,
-  );
-
-  sendResponse(res, {
-    statusCode: httpStatus.OK,
-    success: true,
-    message: 'Password changed successfully',
-    data: result,
-  });
-});
-
-const updateSecurityAnswers = catchAsync(
-  async (req: Request, res: Response) => {
-    const id = req.user?.id as string;
-    const answers = req.body.answers;
-    const result = await ProfileServices.updateSecurityAnswers(id, answers);
-
-    sendResponse(res, {
-      statusCode: httpStatus.OK,
-      success: true,
-      message: 'Security answers updated successfully',
-      data: result,
-    });
-  },
-);
-
 export const ProfileControllers = {
   getMyProfile,
   updateMyProfile,
-  forgotPassword,
-  resetPassword,
-  changePassword,
-  updateSecurityAnswers,
 };
