@@ -1,7 +1,7 @@
 import express from 'express';
 import { fileRoutes } from '../modules/file/file.routes';
 import { AuthRouters } from '../modules/auth/auth.route';
-import { ProfileRouters } from '../modules/profile/profile.router';
+import { ProfileRouters } from '../modules/profile/profile.routes';
 
 const router = express.Router();
 

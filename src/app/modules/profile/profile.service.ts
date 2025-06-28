@@ -40,7 +40,32 @@ const updateMyProfileIntoDB = async (id: string, payload: any, file: any) => {
   );
 };
 
+const changePassword = async (
+  userId: string,
+  oldPassword: string,
+  newPassword: string,
+) => {
+  const user = await prisma.user.findUnique({ where: { id: userId } });
+
+  if (!user) {
+    throw new ApiError(httpStatus.NOT_FOUND, 'User not found');
+  }
+
+  const isMatch = await bcrypt.compare(oldPassword, user.password);
+  if (!isMatch) {
+    throw new ApiError(httpStatus.BAD_REQUEST, 'Old password is incorrect');
+  }
+
+  const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+  await prisma.user.update({
+    where: { id: userId },
+    data: { password: hashedPassword },
+  });
+};
+
 export const ProfileServices = {
   getMyProfileFromDB,
   updateMyProfileIntoDB,
+  changePassword,
 };

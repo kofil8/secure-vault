@@ -34,7 +34,22 @@ const updateMyProfile = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+const changePassword = catchAsync(async (req: Request, res: Response) => {
+  const id = req.user?.id as string;
+  const { oldPassword, newPassword } = req.body;
+
+  await ProfileServices.changePassword(id, oldPassword, newPassword);
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Password changed successfully',
+    data: null,
+  });
+});
+
 export const ProfileControllers = {
   getMyProfile,
   updateMyProfile,
+  changePassword,
 };
