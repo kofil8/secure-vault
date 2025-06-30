@@ -5,9 +5,9 @@ import sendResponse from '../../utils/sendResponse';
 import { fileType } from '@prisma/client';
 import config from '../../../config';
 import fs from 'fs/promises';
+import fsSync from 'fs';
 import axios from 'axios';
 import ApiError from '../../errors/ApiError';
-import { v4 as uuidv4 } from 'uuid';
 import path from 'path';
 import {
   generateBlankDocx,
@@ -38,15 +38,18 @@ const createFile = catchAsync(async (req: Request, res: Response) => {
 
   // If more than 1 file is uploaded, create multiple file records
   if (uploadedFiles.length > 1) {
-    const files = uploadedFiles.map((file) => ({
-      fileName: file.originalname,
-      fileType: getFileType(file.mimetype),
-      fileSize: file.size,
-      fileUrl: `${config.backend_image_url}/uploads/${file.filename}`,
-      filePath: file.path,
-      version: 1,
-      user: { connect: { id: userId } },
-    }));
+    const files = uploadedFiles.map((file) => {
+      const ext = path.extname(file.originalname); // Get the file's original extension
+      return {
+        fileName: file.originalname, // Save the original file name
+        fileType: getFileType(file.mimetype), // Use updated file type function
+        fileSize: file.size,
+        fileUrl: `${config.backend_image_url}/uploads/${file.filename}${ext}`, // Preserve the extension
+        filePath: file.path,
+        version: 1,
+        user: { connect: { id: userId } },
+      };
+    });
 
     try {
       const result = await fileService.createMultipleFiles(files);
@@ -60,7 +63,7 @@ const createFile = catchAsync(async (req: Request, res: Response) => {
       await Promise.all(
         uploadedFiles.map(async (file) => {
           try {
-            await fs.unlink(file.path);
+            await fs.unlink(file.path); // Clean up if an error occurs
           } catch (_) {
             console.warn(`Failed to delete file ${file.path}`);
           }
@@ -73,11 +76,12 @@ const createFile = catchAsync(async (req: Request, res: Response) => {
   // If only one file is uploaded, create a single file record
   if (uploadedFiles.length === 1) {
     const file = uploadedFiles[0];
+    const ext = path.extname(file.originalname); // Get the file's original extension
     const payload = {
-      fileName: file.originalname,
-      fileType: getFileType(file.mimetype),
+      fileName: file.originalname, // Save the original file name
+      fileType: getFileType(file.mimetype), // Use updated file type function
       fileSize: file.size,
-      fileUrl: `${config.backend_image_url}/uploads/${file.filename}`,
+      fileUrl: `${config.backend_image_url}/uploads/${file.filename}${ext}`, // Preserve the extension
       filePath: file.path,
       version: 1,
       user: { connect: { id: userId } },
@@ -93,7 +97,7 @@ const createFile = catchAsync(async (req: Request, res: Response) => {
       });
     } catch (err) {
       try {
-        await fs.unlink(file.path);
+        await fs.unlink(file.path); // Clean up on error
       } catch (_) {
         console.warn(`Failed to delete file ${file.path}`);
       }
@@ -111,7 +115,10 @@ const getFileType = (mimeType: string): fileType => {
     return 'docx';
   if (mimeType.includes('excel') || mimeType.includes('spreadsheetml'))
     return 'xlsx';
-  if (mimeType.includes('image')) return 'png';
+  if (mimeType.includes('image/png')) return 'png';
+  if (mimeType.includes('image/jpg') || mimeType.includes('image/jpeg'))
+    return 'jpg';
+  if (mimeType.includes('image/webp')) return 'webp';
   throw new Error(`Unsupported file type: ${mimeType}`);
 };
 
@@ -338,6 +345,33 @@ const createBlankFile = async (req: Request, res: Response): Promise<void> => {
   });
 };
 
+const downloadFile = catchAsync(async (req, res) => {
+  const { fileId } = req.params;
+  const file = await fileService.getFileById(fileId);
+
+  if (!file || !file.filePath) {
+    throw new ApiError(404, 'File not found or missing file path');
+  }
+
+  const filePath = file.filePath;
+  const fileName = file.fileName;
+  const fileExtension = path.extname(filePath);
+
+  res.setHeader('Content-Disposition', `attachment; filename=${fileName}`);
+  res.setHeader('Content-Type', `application/octet-stream`);
+  const fileStream = fsSync.createReadStream(filePath);
+  fileStream.pipe(res);
+  fileStream.pipe(res);
+
+  interface DownloadFileStream extends NodeJS.ReadableStream {
+    on(event: 'error', listener: (error: Error) => void): this;
+  }
+
+  (fileStream as DownloadFileStream).on('error', (error: Error) => {
+    throw new ApiError(500, 'Error while downloading the file');
+  });
+});
+
 export const fileController = {
   createFile,
   getAllFiles,
@@ -352,4 +386,5 @@ export const fileController = {
   getEditorConfig,
   handleSaveCallback,
   createBlankFile,
+  downloadFile,
 };

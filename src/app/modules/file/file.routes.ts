@@ -64,9 +64,11 @@ router.post(
 router.post('/save-callback/:fileId', fileController.handleSaveCallback);
 
 // Get a specific file by its ID
-router.get('/:fileId', fileController.getFileById);
+router.get('/:fileId', auth(), fileController.getFileById);
 
 // Route to create a blank file (PDF, DOCX, XLSX)
 router.post('/create/:type', auth(), fileController.createBlankFile);
+
+router.get('/download/:fileId', fileController.downloadFile);
 
 export const fileRoutes = router;
