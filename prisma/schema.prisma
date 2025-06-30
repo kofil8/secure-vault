@@ -33,23 +33,25 @@ model File {
   userId          String    @db.ObjectId
   user            User      @relation(fields: [userId], references: [id])
   fileName        String
-  fileType        String // Changed to String for flexibility (store full MIME type like 'application/pdf', 'image/png', etc.)
+  fileType        String
   fileSize        Int
-  fileUrl         String // publicly accessible URL
+  fileUrl         String
   filePath        String? // server path
   fileBlob        String? // optional base64 blob
-  fileDescription String? // Optional field for file description
-  tags            String[] // Array of tags for categorizing the file
+  fileDescription String? // Optional description field
+  tags            String[] // Tags for file categorization
   isFavorite      Boolean   @default(false)
   isDeleted       Boolean   @default(false)
   deletedAt       DateTime?
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
+  version         Int       @default(1)
+  lastSavedAt     DateTime?
+  lastSavedById   String?   @db.ObjectId
+  lastSavedBy     User?     @relation("LastSavedBy", fields: [lastSavedById], references: [id])
 
-  version       Int       @default(1)
-  lastSavedAt   DateTime?
-  lastSavedById String?   @db.ObjectId
-  lastSavedBy   User?     @relation("LastSavedBy", fields: [lastSavedById], references: [id])
+  googleDocId   String? // Store Google Docs ID
+  googleSheetId String? // Store Google Sheets ID
 
   @@map("files")
 }

@@ -77,4 +77,10 @@ router.patch('/google-docs/update', auth(), fileController.updateGoogleDoc);
 router.post('/google-sheets/create', auth(), fileController.createGoogleSheet);
 router.patch('/google-sheets/update', auth(), fileController.updateGoogleSheet);
 
+router.get('/google-docs/open/:fileId', auth(), fileController.openGoogleDoc);
+router.get(
+  '/google-sheets/open/:fileId',
+  auth(),
+  fileController.openGoogleSheet,
+);
 export const fileRoutes = router;

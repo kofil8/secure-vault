@@ -405,7 +405,7 @@ const downloadFile = catchAsync(async (req, res) => {
   });
 });
 
-// Controller to create a Google Doc
+// Create Google Doc
 const createGoogleDoc = catchAsync(async (req: Request, res: Response) => {
   const tokens = req.session.tokens; // Get tokens from session
 
@@ -431,7 +431,7 @@ const createGoogleDoc = catchAsync(async (req: Request, res: Response) => {
   }
 });
 
-// Controller to update a Google Doc
+// Update Google Doc
 const updateGoogleDoc = catchAsync(async (req: Request, res: Response) => {
   const { docId, content } = req.body; // Get document ID and content from the request
   const tokens = req.session.tokens;
@@ -462,7 +462,7 @@ const updateGoogleDoc = catchAsync(async (req: Request, res: Response) => {
   }
 });
 
-// Controller to create a Google Sheet
+// Create Google Sheet
 const createGoogleSheet = catchAsync(async (req: Request, res: Response) => {
   const tokens = req.session.tokens;
 
@@ -488,7 +488,7 @@ const createGoogleSheet = catchAsync(async (req: Request, res: Response) => {
   }
 });
 
-// Controller to update a Google Sheet
+// Update Google Sheet
 const updateGoogleSheet = catchAsync(async (req: Request, res: Response) => {
   const { sheetId, range, values } = req.body; // Get sheet ID, range, and values from the request
   const tokens = req.session.tokens;
@@ -520,6 +520,38 @@ const updateGoogleSheet = catchAsync(async (req: Request, res: Response) => {
   }
 });
 
+// Open Google Doc
+const openGoogleDoc = catchAsync(async (req: Request, res: Response) => {
+  const { fileId } = req.params;
+
+  const file = await fileService.getFileById(fileId);
+  if (!file || !file.googleDocId) {
+    throw new ApiError(404, 'Google Doc not found');
+  }
+
+  const googleDocsUrl = `https://docs.google.com/document/d/${file.googleDocId}/edit`;
+  res.json({
+    success: true,
+    url: googleDocsUrl,
+  });
+});
+
+// Open Google Sheet
+const openGoogleSheet = catchAsync(async (req: Request, res: Response) => {
+  const { fileId } = req.params;
+
+  const file = await fileService.getFileById(fileId);
+  if (!file || !file.googleSheetId) {
+    throw new ApiError(404, 'Google Sheet not found');
+  }
+
+  const googleSheetsUrl = `https://docs.google.com/spreadsheets/d/${file.googleSheetId}/edit`;
+  res.json({
+    success: true,
+    url: googleSheetsUrl,
+  });
+});
+
 export const fileController = {
   createFile,
   getAllFiles,
@@ -539,4 +571,6 @@ export const fileController = {
   updateGoogleDoc,
   createGoogleSheet,
   updateGoogleSheet,
+  openGoogleDoc,
+  openGoogleSheet,
 };

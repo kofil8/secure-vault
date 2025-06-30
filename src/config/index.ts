@@ -8,6 +8,7 @@ export default {
   env: process.env.NODE_ENV,
   google_api_client_id: process.env.GOOGLE_API_CLENT_ID,
   google_api_client_secret: process.env.GOOGLE_API_CLENT_SECRET,
+  google_redirect_uri: process.env.GOOGLE_REDIRECT_URI,
   frontend_url: process.env.FRONTEND_URL,
   backend_file_url: process.env.BACKEND_FILE_URL,
   backend_base_url: process.env.BACKEND_BASE_URL,
