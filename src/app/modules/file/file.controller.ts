@@ -1,21 +1,20 @@
-import httpStatus from 'http-status';
-import catchAsync from '../../utils/catchAsync';
-import { fileService } from './file.service';
-import sendResponse from '../../utils/sendResponse';
-import { fileType } from '@prisma/client';
-import config from '../../../config';
-import fs from 'fs/promises';
-import fsSync from 'fs';
+import { PrismaClient } from '@prisma/client';
 import axios from 'axios';
-import ApiError from '../../errors/ApiError';
+import { Request, Response } from 'express';
+import fsSync from 'fs';
+import fs from 'fs/promises';
+import httpStatus from 'http-status';
 import path from 'path';
+import config from '../../../config';
 import {
   generateBlankDocx,
-  generateBlankXlsx,
   generateBlankPdf,
+  generateBlankXlsx,
 } from '../../../helpars/fileGenerator';
-import { Request, Response } from 'express';
-import { PrismaClient } from '@prisma/client';
+import ApiError from '../../errors/ApiError';
+import catchAsync from '../../utils/catchAsync';
+import sendResponse from '../../utils/sendResponse';
+import { fileService } from './file.service';
 const prisma = new PrismaClient();
 
 // Create a file (either single or multiple files)
@@ -44,7 +43,7 @@ const createFile = catchAsync(async (req: Request, res: Response) => {
         fileName: file.originalname, // Save the original file name
         fileType: getFileType(file.mimetype), // Use updated file type function
         fileSize: file.size,
-        fileUrl: `${config.backend_image_url}/uploads/${file.filename}${ext}`, // Preserve the extension
+        fileUrl: `${config.backend_file_url}/uploads/${file.filename}`,
         filePath: file.path,
         version: 1,
         user: { connect: { id: userId } },
@@ -81,7 +80,7 @@ const createFile = catchAsync(async (req: Request, res: Response) => {
       fileName: file.originalname, // Save the original file name
       fileType: getFileType(file.mimetype), // Use updated file type function
       fileSize: file.size,
-      fileUrl: `${config.backend_image_url}/uploads/${file.filename}${ext}`, // Preserve the extension
+      fileUrl: `${config.backend_file_url}/uploads/${file.filename}`,
       filePath: file.path,
       version: 1,
       user: { connect: { id: userId } },
@@ -109,7 +108,7 @@ const createFile = catchAsync(async (req: Request, res: Response) => {
 });
 
 // Helper function to determine file type based on MIME type
-const getFileType = (mimeType: string): fileType => {
+const getFileType = (mimeType: string) => {
   if (mimeType.includes('pdf')) return 'pdf';
   if (mimeType.includes('msword') || mimeType.includes('wordprocessingml'))
     return 'docx';
@@ -191,11 +190,42 @@ const restoreMultipleFiles = catchAsync(async (req: Request, res: Response) => {
 
 // Hard delete a file (permanent removal)
 const hardDeleteFile = catchAsync(async (req: Request, res: Response) => {
-  await fileService.hardDeleteFile(req.params.fileId);
+  const { fileId } = req.params;
+
+  // Step 1: Fetch the file from the database
+  const file = await prisma.file.findUnique({ where: { id: fileId } });
+
+  if (!file) {
+    throw new ApiError(404, 'File not found');
+  }
+
+  // Step 2: Delete the file from the database
+  await prisma.file.delete({
+    where: { id: fileId },
+  });
+
+  // Step 3: Delete the file from the local file system
+  let filePath = file.filePath as string;
+
+  // Ensure that the file path is correct and not duplicated
+  if (!filePath.startsWith(process.cwd())) {
+    // If the file path does not include the full path, prepend the base directory
+    filePath = path.join(process.cwd(), filePath);
+  }
+
+  try {
+    // Delete the file from the file system
+    await fs.unlink(filePath);
+  } catch (err) {
+    console.error('Error deleting file from file system', err);
+    throw new ApiError(500, 'Failed to delete file from the system');
+  }
+
+  // Step 4: Send response
   sendResponse(res, {
-    statusCode: httpStatus.OK,
+    statusCode: 200,
     success: true,
-    message: 'File permanently deleted',
+    message: 'File permanently deleted from the system and database',
     data: null,
   });
 });

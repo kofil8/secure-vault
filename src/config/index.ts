@@ -7,7 +7,7 @@ export default {
   database_url: process.env.DATABASE_URL,
   env: process.env.NODE_ENV,
   frontend_url: process.env.FRONTEND_URL,
-  backend_image_url: process.env.BACKEND_IMAGE_URL,
+  backend_file_url: process.env.BACKEND_FILE_URL,
   backend_base_url: process.env.BACKEND_BASE_URL,
   stripe_secret_key: process.env.STRIPE_SECRET_KEY,
   stripe_webhook_secret: process.env.STRIPE_WEBHOOK_SECRET,

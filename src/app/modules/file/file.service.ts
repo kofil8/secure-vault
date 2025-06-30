@@ -1,9 +1,10 @@
-import { Prisma, fileType } from '@prisma/client';
+import { Prisma } from '@prisma/client';
 import prisma from '../../helpers/prisma';
 import ApiError from '../../errors/ApiError';
 import { IPaginationOptions } from '../../interfaces/paginations';
 import { calculatePagination } from '../../utils/calculatePagination';
 import fs from 'fs/promises';
+import path from 'path';
 import axios from 'axios';
 import config from '../../../config';
 
@@ -32,7 +33,7 @@ const getAllFiles = async ({
   paginations = { page: 1, limit: 10, sortBy: 'createdAt', sortOrder: 'desc' },
 }: {
   trash?: boolean;
-  filetype?: fileType;
+  filetype?: string;
   isFavourite?: boolean;
   searchTerm?: string;
   paginations?: IPaginationOptions;
@@ -111,16 +112,33 @@ const restoreMultipleFiles = async (ids: string[]) => {
 };
 
 const hardDeleteFile = async (id: string) => {
-  const file = await prisma.file.delete({ where: { id } });
+  // Step 1: Get file details (including filePath)
+  const file = await prisma.file.findUnique({ where: { id } });
   if (!file) throw new ApiError(404, 'File not found');
+
+  // Step 2: Remove file from the database
+  await prisma.file.delete({
+    where: { id },
+  });
+
+  // Step 3: Delete the file from the local file system
+  const filePath = path.join(process.cwd(), file.filePath as string);
+
+  try {
+    // Delete the file from the file system
+    await fs.unlink(filePath);
+  } catch (err) {
+    console.error('Error deleting file from file system', err);
+    throw new ApiError(500, 'Failed to delete file from the system');
+  }
+
   return file;
 };
-
 const updateFile = async (
   id: string,
   data: Partial<{
     fileName: string;
-    fileType: fileType;
+    fileType: string;
     fileSize: number;
     fileUrl: string;
     filePath: string | null;
