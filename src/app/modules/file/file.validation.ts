@@ -1,14 +1,13 @@
 // file.validation.ts
 import { z } from 'zod';
-import { fileType } from '@prisma/client';
 
 // Schema for creating a single file
 const createFileSchema = z.object({
   fileName: z.string({
     required_error: 'File name is required',
   }),
-  fileType: z.nativeEnum(fileType, {
-    required_error: 'File type is required',
+  fileType: z.string({
+    required_error: 'FileType is required',
   }),
   fileSize: z
     .number()
@@ -27,7 +26,7 @@ const createMultipleFilesSchema = z
 // Schema for updating a file
 const updateFileSchema = z.object({
   fileName: z.string().optional(),
-  fileType: z.nativeEnum(fileType).optional(),
+  fileType: z.string().optional(),
   fileSize: z.number().int().positive().optional(),
   fileUrl: z.string().url().optional(),
   filePath: z.string().optional(),
