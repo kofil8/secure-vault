@@ -71,4 +71,10 @@ router.post('/create/:type', auth(), fileController.createBlankFile);
 
 router.get('/download/:fileId', fileController.downloadFile);
 
+// New routes for Google Docs and Sheets
+router.post('/google-docs/create', auth(), fileController.createGoogleDoc);
+router.patch('/google-docs/update', auth(), fileController.updateGoogleDoc);
+router.post('/google-sheets/create', auth(), fileController.createGoogleSheet);
+router.patch('/google-sheets/update', auth(), fileController.updateGoogleSheet);
+
 export const fileRoutes = router;

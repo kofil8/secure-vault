@@ -5,6 +5,7 @@ import express, { Application, ErrorRequestHandler, Response } from 'express';
 import httpStatus from 'http-status';
 import morgan from 'morgan';
 import path from 'path';
+import session from 'express-session';
 import GlobalErrorHandler from './app/middlewares/globalErrorHandler';
 import { defaultLimiter } from './app/middlewares/rateLimit';
 import router from './app/routes';
@@ -50,6 +51,15 @@ app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 //     },
 //   }),
 // );
+
+app.use(
+  session({
+    secret: 'fde4fb19db80d6ba1c624b4bc',
+    resave: false,
+    saveUninitialized: true,
+    cookie: { secure: process.env.NODE_ENV === 'production' },
+  }),
+);
 
 // 🌐 Base route
 app.get('/', (_req, res: Response) => {

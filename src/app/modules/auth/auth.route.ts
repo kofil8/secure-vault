@@ -3,6 +3,9 @@ import validateRequest from '../../middlewares/validateRequest';
 import { authValidation } from './auth.validation';
 import { AuthControllers } from './auth.controller';
 import { auth } from '../../middlewares/auth';
+import { oAuth2Client } from '../google/googleAuth';
+import { google } from 'googleapis';
+import sendResponse from '../../utils/sendResponse';
 
 const router = express.Router();
 
@@ -45,5 +48,21 @@ router.post(
   AuthControllers.setSecurityAnswers,
 );
 router.get('/security-status', auth(), AuthControllers.getSecurityStatus);
+
+// Start Google OAuth2 authentication
+router.get('/google', (req, res) => {
+  const url = oAuth2Client.generateAuthUrl({
+    access_type: 'offline',
+    scope: [
+      'https://www.googleapis.com/auth/drive',
+      'https://www.googleapis.com/auth/documents',
+      'https://www.googleapis.com/auth/spreadsheets',
+    ],
+  });
+  res.redirect(url); // Redirect to Google's OAuth2 page
+});
+
+// Handle Google OAuth callback
+router.get('/google/callback', AuthControllers.googleOAuthCallback);
 
 export const AuthRouters = router;

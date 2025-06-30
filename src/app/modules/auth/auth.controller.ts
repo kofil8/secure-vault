@@ -3,6 +3,7 @@ import catchAsync from '../../utils/catchAsync';
 import sendResponse from '../../utils/sendResponse';
 import { AuthServices } from './auth.service';
 import { Request, RequestHandler, Response } from 'express';
+import { oAuth2Client } from '../google/googleAuth';
 
 const isProd = process.env.NODE_ENV === 'production';
 
@@ -149,6 +150,30 @@ const getSecurityStatus = catchAsync(async (req, res) => {
   });
 });
 
+const googleOAuthCallback = catchAsync(async (req, res) => {
+  const { code } = req.query;
+
+  if (!code) {
+    return res.status(400).json({ error: 'No code provided' });
+  }
+
+  try {
+    const { tokens } = await oAuth2Client.getToken(code as string);
+    oAuth2Client.setCredentials(tokens);
+
+    // Store tokens in session
+    req.session.tokens = tokens; // Now TypeScript recognizes 'session'
+
+    sendResponse(res, {
+      statusCode: 200,
+      success: true,
+      message: 'Google OAuth authentication successful',
+      data: tokens,
+    });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to exchange code for tokens' });
+  }
+});
 export const AuthControllers = {
   loginUser,
   logoutUser,
@@ -158,4 +183,5 @@ export const AuthControllers = {
   resetPassword,
   setSecurityAnswers,
   getSecurityStatus,
+  googleOAuthCallback,
 };

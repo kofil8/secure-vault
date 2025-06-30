@@ -11,10 +11,13 @@ import {
   generateBlankPdf,
   generateBlankXlsx,
 } from '../../../helpars/fileGenerator';
+import { googleDocsService } from './googleDocsService';
+import { googleSheetsService } from './googleSheetsService';
 import ApiError from '../../errors/ApiError';
 import catchAsync from '../../utils/catchAsync';
 import sendResponse from '../../utils/sendResponse';
 import { fileService } from './file.service';
+import { OAuth2Client } from 'google-auth-library';
 const prisma = new PrismaClient();
 
 // Create a file (either single or multiple files)
@@ -402,6 +405,121 @@ const downloadFile = catchAsync(async (req, res) => {
   });
 });
 
+// Controller to create a Google Doc
+const createGoogleDoc = catchAsync(async (req: Request, res: Response) => {
+  const tokens = req.session.tokens; // Get tokens from session
+
+  if (!tokens) {
+    return res.status(401).json({ error: 'No tokens available' });
+  }
+
+  const auth = new OAuth2Client();
+  auth.setCredentials(tokens);
+
+  try {
+    const doc = await googleDocsService.createGoogleDoc(auth);
+    sendResponse(res, {
+      statusCode: 200,
+      success: true,
+      message: 'Google Doc created successfully',
+      data: doc,
+    });
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : 'An unknown error occurred';
+    res.status(500).json({ error: message });
+  }
+});
+
+// Controller to update a Google Doc
+const updateGoogleDoc = catchAsync(async (req: Request, res: Response) => {
+  const { docId, content } = req.body; // Get document ID and content from the request
+  const tokens = req.session.tokens;
+
+  if (!tokens) {
+    return res.status(401).json({ error: 'No tokens available' });
+  }
+
+  const auth = new OAuth2Client();
+  auth.setCredentials(tokens);
+
+  try {
+    const updatedDoc = await googleDocsService.updateGoogleDoc(
+      docId,
+      auth,
+      content,
+    );
+    sendResponse(res, {
+      statusCode: 200,
+      success: true,
+      message: 'Google Doc updated successfully',
+      data: updatedDoc,
+    });
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : 'An unknown error occurred';
+    res.status(500).json({ error: message });
+  }
+});
+
+// Controller to create a Google Sheet
+const createGoogleSheet = catchAsync(async (req: Request, res: Response) => {
+  const tokens = req.session.tokens;
+
+  if (!tokens) {
+    return res.status(401).json({ error: 'No tokens available' });
+  }
+
+  const auth = new OAuth2Client();
+  auth.setCredentials(tokens);
+
+  try {
+    const sheet = await googleSheetsService.createGoogleSheet(auth);
+    sendResponse(res, {
+      statusCode: 200,
+      success: true,
+      message: 'Google Sheet created successfully',
+      data: sheet,
+    });
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : 'An unknown error occurred';
+    res.status(500).json({ error: message });
+  }
+});
+
+// Controller to update a Google Sheet
+const updateGoogleSheet = catchAsync(async (req: Request, res: Response) => {
+  const { sheetId, range, values } = req.body; // Get sheet ID, range, and values from the request
+  const tokens = req.session.tokens;
+
+  if (!tokens) {
+    return res.status(401).json({ error: 'No tokens available' });
+  }
+
+  const auth = new OAuth2Client();
+  auth.setCredentials(tokens);
+
+  try {
+    const updatedSheet = await googleSheetsService.updateGoogleSheet(
+      sheetId,
+      auth,
+      range,
+      values,
+    );
+    sendResponse(res, {
+      statusCode: 200,
+      success: true,
+      message: 'Google Sheet updated successfully',
+      data: updatedSheet,
+    });
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : 'An unknown error occurred';
+    res.status(500).json({ error: message });
+  }
+});
+
 export const fileController = {
   createFile,
   getAllFiles,
@@ -417,4 +535,8 @@ export const fileController = {
   handleSaveCallback,
   createBlankFile,
   downloadFile,
+  createGoogleDoc,
+  updateGoogleDoc,
+  createGoogleSheet,
+  updateGoogleSheet,
 };
