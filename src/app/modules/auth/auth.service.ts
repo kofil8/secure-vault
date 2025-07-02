@@ -31,13 +31,13 @@ const loginUserFromDB = async ({
     throw new ApiError(httpStatus.BAD_REQUEST, 'Invalid credentials');
 
   const accessToken = jwtHelpers.generateToken(
-    { id: user.id, email: user.email },
+    { id: user.id, email: user.email, name: user.name },
     config.jwt.jwt_secret as Secret,
     config.jwt.expires_in as SignOptions['expiresIn'],
   );
 
   const refreshToken = jwtHelpers.generateToken(
-    { id: user.id, email: user.email },
+    { id: user.id, email: user.email, name: user.name },
     config.jwt.refresh_token_secret as Secret,
     config.jwt.expires_in as SignOptions['expiresIn'],
   );
@@ -75,13 +75,13 @@ const refreshAccessToken = async (token: string) => {
     }
 
     const newAccessToken = jwtHelpers.generateToken(
-      { id: user.id, email: user.email },
+      { id: user.id, email: user.email, name: user.name },
       config.jwt.jwt_secret as Secret,
       config.jwt.expires_in as SignOptions['expiresIn'],
     );
 
     const newRefreshToken = jwtHelpers.generateToken(
-      { id: user.id, email: user.email },
+      { id: user.id, email: user.email, name: user.name },
       config.jwt.refresh_token_secret as Secret,
       config.jwt.expires_in as SignOptions['expiresIn'],
     );
@@ -149,7 +149,7 @@ const verifyAnswersAndCreateToken = async (
 
   // Generate a JWT token for password reset valid for, e.g., 15 mins
   const resetToken = jwtHelpers.generateToken(
-    { id: user.id, email: user.email },
+    { id: user.id, email: user.email, name: user.name },
     config.jwt.jwt_secret as Secret,
     '15m',
   );

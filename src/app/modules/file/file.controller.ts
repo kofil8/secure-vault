@@ -321,10 +321,12 @@ const getEditorConfig = catchAsync(async (req: Request, res: Response) => {
       callbackUrl: `${config.backend_base_url}/api/v1/files/save-callback/${file.id}`,
       user: {
         id: user?.id,
-        name: user?.email || 'Anonymous',
+        name: user?.name || 'Anonymous',
       },
     },
   };
+
+  console.log(configData);
 
   sendResponse(res, {
     statusCode: httpStatus.OK,

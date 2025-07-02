@@ -3,7 +3,7 @@ import app from './app';
 import seedSuperAdmin from './app/DB';
 import config from './config';
 
-const port = config.port || 9001;
+const port = config.port || 7001;
 
 async function main() {
   // Start Express server

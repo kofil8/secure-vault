@@ -15,6 +15,7 @@ declare module 'express-serve-static-core' {
     user?: {
       id: string;
       email: string;
+      name: string;
     };
   }
 }
@@ -23,12 +24,13 @@ declare module 'express-serve-static-core' {
 export const auth = () => {
   return async (
     req: Request,
-    res: Response,
+    res: Response, // Re-enable response here if you need to send responses from the middleware
     next: NextFunction,
   ): Promise<void> => {
     const authHeader = req.headers.authorization;
 
-    if (!authHeader?.startsWith('Bearer ')) {
+    // Check if Authorization header exists and starts with 'Bearer '
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
       return next(
         new ApiError(
           httpStatus.UNAUTHORIZED,
@@ -37,39 +39,51 @@ export const auth = () => {
       );
     }
 
-    const token = authHeader.split(' ')[1];
+    const token = authHeader.split(' ')[1]; // Extract token from header
 
     try {
+      // Verify the JWT token using the secret key from config
       const decoded = jwt.verify(token, config.jwt.jwt_secret as Secret) as {
         id: string;
         email: string;
+        name: string;
       };
 
-      if (!decoded?.id || !decoded?.email) {
+      // Validate decoded payload
+      if (!decoded?.id || !decoded?.email || !decoded?.name) {
         return next(
           new ApiError(httpStatus.UNAUTHORIZED, 'Invalid token payload'),
         );
       }
 
+      // Find the user in the database using the decoded user ID
       const user = await prisma.user.findUnique({ where: { id: decoded.id } });
 
+      // If user is not found, return an error
       if (!user) {
         return next(new ApiError(httpStatus.NOT_FOUND, 'User not found'));
       }
 
-      req.user = { id: decoded.id, email: decoded.email };
+      // Attach user to the request object for later use in the route handlers
+      req.user = { id: decoded.id, email: decoded.email, name: decoded.name };
+
+      // Proceed to the next middleware
       next();
     } catch (error) {
+      // Handle token expiration error
       if (error instanceof TokenExpiredError) {
         return next(
           new ApiError(httpStatus.UNAUTHORIZED, 'Access token has expired'),
         );
-      } else if (error instanceof JsonWebTokenError) {
+      }
+      // Handle invalid token error
+      else if (error instanceof JsonWebTokenError) {
         return next(
           new ApiError(httpStatus.UNAUTHORIZED, 'Invalid access token'),
         );
       }
 
+      // Catch any other errors
       return next(
         new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Authentication error'),
       );

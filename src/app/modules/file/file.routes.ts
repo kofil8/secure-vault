@@ -54,7 +54,7 @@ router.patch(
 router.patch('/favourite/:fileId', auth(), fileController.makeFavourite);
 
 // Get a specific file by its ID
-router.get('/:fileId', fileController.getFileById);
+router.get('/:fileId', auth(), fileController.getFileById);
 
 // Route to create a blank file (PDF, DOCX, XLSX)
 router.post('/create/:type', auth(), fileController.createBlankFile);
@@ -63,6 +63,6 @@ router.get('/download/:fileId', fileController.downloadFile);
 
 //onlyOffice
 router.post('/save-callback/:fileId', fileController.handleSaveCallback);
-router.get('/editor-config/:fileId', fileController.getEditorConfig);
+router.get('/editor-config/:fileId', auth(), fileController.getEditorConfig);
 
 export const fileRoutes = router;
