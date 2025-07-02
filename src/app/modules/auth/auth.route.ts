@@ -3,9 +3,7 @@ import validateRequest from '../../middlewares/validateRequest';
 import { authValidation } from './auth.validation';
 import { AuthControllers } from './auth.controller';
 import { auth } from '../../middlewares/auth';
-import { oAuth2Client } from '../google/googleAuth';
-import { google } from 'googleapis';
-import sendResponse from '../../utils/sendResponse';
+
 
 const router = express.Router();
 

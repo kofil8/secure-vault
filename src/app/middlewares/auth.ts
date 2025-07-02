@@ -15,13 +15,12 @@ declare module 'express-serve-static-core' {
     user?: {
       id: string;
       email: string;
-      role?: string;
     };
   }
 }
 
 // Authentication middleware
-export const auth = (role?: string) => {
+export const auth = () => {
   return async (
     req: Request,
     res: Response,
@@ -44,7 +43,6 @@ export const auth = (role?: string) => {
       const decoded = jwt.verify(token, config.jwt.jwt_secret as Secret) as {
         id: string;
         email: string;
-        role?: string;
       };
 
       if (!decoded?.id || !decoded?.email) {
@@ -59,14 +57,7 @@ export const auth = (role?: string) => {
         return next(new ApiError(httpStatus.NOT_FOUND, 'User not found'));
       }
 
-      // Check for specific role if passed
-      if (role && decoded.role !== role) {
-        return next(
-          new ApiError(httpStatus.FORBIDDEN, 'Insufficient permissions'),
-        );
-      }
-
-      req.user = { id: decoded.id, email: decoded.email, role: decoded.role };
+      req.user = { id: decoded.id, email: decoded.email };
       next();
     } catch (error) {
       if (error instanceof TokenExpiredError) {
