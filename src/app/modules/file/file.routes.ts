@@ -63,6 +63,6 @@ router.get('/download/:fileId', fileController.downloadFile);
 
 //onlyOffice
 router.post('/save-callback/:fileId', fileController.handleSaveCallback);
-router.get('/editor-config/:fileId', auth(), fileController.getEditorConfig);
+router.get('/editor-config/:fileId', fileController.getEditorConfig);
 
 export const fileRoutes = router;
