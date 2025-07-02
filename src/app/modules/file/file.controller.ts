@@ -316,9 +316,9 @@ const getEditorConfig = catchAsync(async (req: Request, res: Response) => {
       key: `${file.id}-${file.version}`,
       permissions: { edit: true },
     },
-    documentType: file.fileType === 'xlsx' ? 'docx' : 'pdf',
+    documentType: file.fileType === 'xlsx' ? 'spreadsheet' : 'text',
     editorConfig: {
-      callbackUrl: `${config.backend_base_url}/api/files/save-callback/${file.id}`,
+      callbackUrl: `${config.backend_base_url}/api/v1/files/save-callback/${file.id}`,
       user: {
         id: user?.id,
         name: user?.email || 'Anonymous',
