@@ -33,18 +33,19 @@ const storage = multer.diskStorage({
     cb(null, uploadPath); // Save in the "uploads" folder
   },
   filename: function (req, file, cb) {
-    const ext = path.extname(file.originalname); // Extract file extension
-    const baseName = path.basename(file.originalname, ext); // Get file name without extension
-    let finalName = `${baseName}${ext}`; // Default file name
+    const ext = path.extname(file.originalname); // Get extension
+    let baseName = path.basename(file.originalname, ext); // Remove extension
+    baseName = baseName.replace(/\s+/g, '-'); // Replace spaces with hyphens
 
+    let finalName = `${baseName}${ext}`;
     let counter = 1;
-    // Check if the file already exists and add a counter to the filename if it does
+
     while (fs.existsSync(path.join(uploadPath, finalName))) {
       finalName = `${baseName}-${counter}${ext}`;
       counter++;
     }
 
-    cb(null, finalName); // Save with the unique filename
+    cb(null, finalName);
   },
 });
 

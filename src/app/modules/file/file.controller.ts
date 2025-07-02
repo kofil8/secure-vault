@@ -11,13 +11,10 @@ import {
   generateBlankPdf,
   generateBlankXlsx,
 } from '../../../helpars/fileGenerator';
-import { googleDocsService } from './googleDocsService';
-import { googleSheetsService } from './googleSheetsService';
 import ApiError from '../../errors/ApiError';
 import catchAsync from '../../utils/catchAsync';
 import sendResponse from '../../utils/sendResponse';
 import { fileService } from './file.service';
-import { OAuth2Client } from 'google-auth-library';
 const prisma = new PrismaClient();
 
 // Create a file (either single or multiple files)
@@ -41,12 +38,17 @@ const createFile = catchAsync(async (req: Request, res: Response) => {
   // If more than 1 file is uploaded, create multiple file records
   if (uploadedFiles.length > 1) {
     const files = uploadedFiles.map((file) => {
-      const ext = path.extname(file.originalname); // Get the file's original extension
+      const ext = path.extname(file.originalname);
+      const baseName = path
+        .basename(file.originalname, ext)
+        .replace(/\s+/g, '-');
+      const cleanFileName = `${baseName}${ext}`; // Optional display name
+
       return {
-        fileName: file.originalname, // Save the original file name
-        fileType: getFileType(file.mimetype), // Use updated file type function
+        fileName: cleanFileName, // Use hyphenated version for DB
+        fileType: getFileType(file.mimetype),
         fileSize: file.size,
-        fileUrl: `${config.backend_file_url}/uploads/${file.filename}`,
+        fileUrl: `${config.backend_file_url}/uploads/${file.filename}`, // Use saved filename
         filePath: file.path,
         version: 1,
         user: { connect: { id: userId } },
@@ -65,7 +67,7 @@ const createFile = catchAsync(async (req: Request, res: Response) => {
       await Promise.all(
         uploadedFiles.map(async (file) => {
           try {
-            await fs.unlink(file.path); // Clean up if an error occurs
+            await fs.unlink(file.path); // Rollback local files on error
           } catch (_) {
             console.warn(`Failed to delete file ${file.path}`);
           }
@@ -78,10 +80,10 @@ const createFile = catchAsync(async (req: Request, res: Response) => {
   // If only one file is uploaded, create a single file record
   if (uploadedFiles.length === 1) {
     const file = uploadedFiles[0];
-    const ext = path.extname(file.originalname); // Get the file's original extension
+    const ext = path.extname(file.originalname); // Still used for type
     const payload = {
-      fileName: file.originalname, // Save the original file name
-      fileType: getFileType(file.mimetype), // Use updated file type function
+      fileName: file.filename, // Save with final slugified filename
+      fileType: getFileType(file.mimetype),
       fileSize: file.size,
       fileUrl: `${config.backend_file_url}/uploads/${file.filename}`,
       filePath: file.path,
@@ -258,6 +260,45 @@ const makeFavourite = catchAsync(async (req: Request, res: Response) => {
 });
 
 // Get OnlyOffice editor configuration for a specific file
+const handleSaveCallback = catchAsync(async (req: Request, res: Response) => {
+  const { fileId } = req.params;
+  const { status, url, users = [] } = req.body;
+
+  if (status !== 2 || !url) {
+    return res.status(200).send('No update required');
+  }
+
+  const file = await fileService.getFileById(fileId);
+  if (!file || !file.filePath) {
+    throw new ApiError(404, 'File not found');
+  }
+
+  // Determine file extension
+  const ext = path.extname(file.filePath) || `.${file.fileType}`;
+
+  try {
+    // Download updated file
+    const response = await axios.get(url, { responseType: 'arraybuffer' });
+    const buffer = Buffer.from(response.data as ArrayBuffer);
+
+    // Write back to original path
+    await fs.writeFile(file.filePath, buffer);
+
+    // Update database
+    await fileService.updateFile(fileId, {
+      version: file.version + 1,
+      lastSavedAt: new Date(),
+      lastSavedById: users[0] || undefined,
+      fileBlob: buffer.toString('base64'),
+    });
+
+    return res.status(200).json({ message: 'Saved successfully' });
+  } catch (error) {
+    console.error('Save error:', error);
+    return res.status(500).json({ error: 'Failed to save file' });
+  }
+});
+
 const getEditorConfig = catchAsync(async (req: Request, res: Response) => {
   const { fileId } = req.params;
   const user = req.user;
@@ -280,7 +321,7 @@ const getEditorConfig = catchAsync(async (req: Request, res: Response) => {
       callbackUrl: `${config.backend_base_url}/api/files/save-callback/${file.id}`,
       user: {
         id: user?.id,
-        email: user?.email || 'Anonymous',
+        name: user?.email || 'Anonymous',
       },
     },
   };
@@ -291,32 +332,6 @@ const getEditorConfig = catchAsync(async (req: Request, res: Response) => {
     message: 'Editor config generated',
     data: configData,
   });
-});
-
-// Handle file save callback from OnlyOffice
-const handleSaveCallback = catchAsync(async (req: Request, res: Response) => {
-  const { fileId } = req.params;
-  const { status, url, users = [] } = req.body;
-
-  if (status !== 2 || !url) {
-    return res.status(200).send('Nothing to save');
-  }
-
-  const file = await fileService.getFileById(fileId);
-  if (!file) throw new ApiError(404, 'File not found');
-
-  const response = await axios.get(url, { responseType: 'arraybuffer' });
-  const buffer = Buffer.from(response.data as ArrayBuffer);
-  const base64 = buffer.toString('base64');
-
-  await fileService.updateFile(fileId, {
-    fileBlob: base64,
-    version: file.version + 1,
-    lastSavedAt: new Date(),
-    lastSavedById: users[0] || undefined,
-  });
-
-  res.status(200).json({ message: 'File saved successfully' });
 });
 
 const createBlankFile = async (req: Request, res: Response): Promise<void> => {
@@ -405,153 +420,6 @@ const downloadFile = catchAsync(async (req, res) => {
   });
 });
 
-// Create Google Doc
-const createGoogleDoc = catchAsync(async (req: Request, res: Response) => {
-  const tokens = req.session.tokens; // Get tokens from session
-
-  if (!tokens) {
-    return res.status(401).json({ error: 'No tokens available' });
-  }
-
-  const auth = new OAuth2Client();
-  auth.setCredentials(tokens);
-
-  try {
-    const doc = await googleDocsService.createGoogleDoc(auth);
-    sendResponse(res, {
-      statusCode: 200,
-      success: true,
-      message: 'Google Doc created successfully',
-      data: doc,
-    });
-  } catch (error) {
-    const message =
-      error instanceof Error ? error.message : 'An unknown error occurred';
-    res.status(500).json({ error: message });
-  }
-});
-
-// Update Google Doc
-const updateGoogleDoc = catchAsync(async (req: Request, res: Response) => {
-  const { docId, content } = req.body; // Get document ID and content from the request
-  const tokens = req.session.tokens;
-
-  if (!tokens) {
-    return res.status(401).json({ error: 'No tokens available' });
-  }
-
-  const auth = new OAuth2Client();
-  auth.setCredentials(tokens);
-
-  try {
-    const updatedDoc = await googleDocsService.updateGoogleDoc(
-      docId,
-      auth,
-      content,
-    );
-    sendResponse(res, {
-      statusCode: 200,
-      success: true,
-      message: 'Google Doc updated successfully',
-      data: updatedDoc,
-    });
-  } catch (error) {
-    const message =
-      error instanceof Error ? error.message : 'An unknown error occurred';
-    res.status(500).json({ error: message });
-  }
-});
-
-// Create Google Sheet
-const createGoogleSheet = catchAsync(async (req: Request, res: Response) => {
-  const tokens = req.session.tokens;
-
-  if (!tokens) {
-    return res.status(401).json({ error: 'No tokens available' });
-  }
-
-  const auth = new OAuth2Client();
-  auth.setCredentials(tokens);
-
-  try {
-    const sheet = await googleSheetsService.createGoogleSheet(auth);
-    sendResponse(res, {
-      statusCode: 200,
-      success: true,
-      message: 'Google Sheet created successfully',
-      data: sheet,
-    });
-  } catch (error) {
-    const message =
-      error instanceof Error ? error.message : 'An unknown error occurred';
-    res.status(500).json({ error: message });
-  }
-});
-
-// Update Google Sheet
-const updateGoogleSheet = catchAsync(async (req: Request, res: Response) => {
-  const { sheetId, range, values } = req.body; // Get sheet ID, range, and values from the request
-  const tokens = req.session.tokens;
-
-  if (!tokens) {
-    return res.status(401).json({ error: 'No tokens available' });
-  }
-
-  const auth = new OAuth2Client();
-  auth.setCredentials(tokens);
-
-  try {
-    const updatedSheet = await googleSheetsService.updateGoogleSheet(
-      sheetId,
-      auth,
-      range,
-      values,
-    );
-    sendResponse(res, {
-      statusCode: 200,
-      success: true,
-      message: 'Google Sheet updated successfully',
-      data: updatedSheet,
-    });
-  } catch (error) {
-    const message =
-      error instanceof Error ? error.message : 'An unknown error occurred';
-    res.status(500).json({ error: message });
-  }
-});
-
-// Open Google Doc
-const openGoogleDoc = catchAsync(async (req: Request, res: Response) => {
-  const { fileId } = req.params;
-
-  const file = await fileService.getFileById(fileId);
-  if (!file || !file.googleDocId) {
-    throw new ApiError(404, 'Google Doc not found');
-  }
-
-  const googleDocsUrl = `https://docs.google.com/document/d/${file.googleDocId}/edit`;
-  res.json({
-    success: true,
-    url: googleDocsUrl,
-  });
-});
-
-// Open Google Sheet
-const openGoogleSheet = catchAsync(async (req: Request, res: Response) => {
-  const { fileId } = req.params;
-
-  const file = await fileService.getFileById(fileId);
-  if (!file || !file.googleSheetId) {
-    throw new ApiError(404, 'Google Sheet not found');
-  }
-
-  const googleSheetsUrl = `https://docs.google.com/spreadsheets/d/${file.googleSheetId}/edit`;
-  res.json({
-    success: true,
-    url: googleSheetsUrl,
-  });
-});
-
 export const fileController = {
   createFile,
   getAllFiles,
@@ -563,14 +431,8 @@ export const fileController = {
   hardDeleteFile,
   updateFile,
   makeFavourite,
-  getEditorConfig,
-  handleSaveCallback,
   createBlankFile,
   downloadFile,
-  createGoogleDoc,
-  updateGoogleDoc,
-  createGoogleSheet,
-  updateGoogleSheet,
-  openGoogleDoc,
-  openGoogleSheet,
+  handleSaveCallback,
+  getEditorConfig,
 };

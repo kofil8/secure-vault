@@ -53,16 +53,6 @@ router.patch(
 // Mark or unmark a file as favorite
 router.patch('/favourite/:fileId', auth(), fileController.makeFavourite);
 
-// ✅ OnlyOffice Editor Config - Generate configuration for opening a file in OnlyOffice
-router.post(
-  '/onlyoffice/config/:fileId',
-  auth(),
-  fileController.getEditorConfig,
-);
-
-// ✅ Save Callback (for OnlyOffice save events) - Save the edited file back to the system
-router.post('/save-callback/:fileId', fileController.handleSaveCallback);
-
 // Get a specific file by its ID
 router.get('/:fileId', auth(), fileController.getFileById);
 
@@ -71,16 +61,8 @@ router.post('/create/:type', auth(), fileController.createBlankFile);
 
 router.get('/download/:fileId', fileController.downloadFile);
 
-// New routes for Google Docs and Sheets
-router.post('/google-docs/create', auth(), fileController.createGoogleDoc);
-router.patch('/google-docs/update', auth(), fileController.updateGoogleDoc);
-router.post('/google-sheets/create', auth(), fileController.createGoogleSheet);
-router.patch('/google-sheets/update', auth(), fileController.updateGoogleSheet);
+//onlyOffice
+router.post('/save-callback/:fileId', fileController.handleSaveCallback);
+router.get('/editor-config/:fileId', auth(), fileController.getEditorConfig);
 
-router.get('/google-docs/open/:fileId', auth(), fileController.openGoogleDoc);
-router.get(
-  '/google-sheets/open/:fileId',
-  auth(),
-  fileController.openGoogleSheet,
-);
 export const fileRoutes = router;
