@@ -1451,3 +1451,15 @@
 {"level":"\u001b[32minfo\u001b[39m","message":"{\"method\":\"GET\",\"url\":\"/api/v1/profile/me\",\"status\":\"200\",\"responseTime\":\"180.824\"}","timestamp":"2025-07-06T18:16:11.127Z"}
 {"level":"\u001b[32minfo\u001b[39m","message":"{\"method\":\"GET\",\"url\":\"/api/v1/files\",\"status\":\"200\",\"responseTime\":\"182.224\"}","timestamp":"2025-07-06T18:16:11.851Z"}
 {"level":"\u001b[32minfo\u001b[39m","message":"{\"method\":\"DELETE\",\"url\":\"/api/v1/files/permanent/686abd648bb934b9cc1611b5\",\"status\":\"500\",\"responseTime\":\"273.474\"}","timestamp":"2025-07-06T18:16:19.241Z"}
+{"level":"\u001b[32minfo\u001b[39m","message":"{\"method\":\"GET\",\"url\":\"/api/v1/files\",\"status\":\"200\",\"responseTime\":\"525.829\"}","timestamp":"2025-07-06T18:20:25.496Z"}
+{"level":"\u001b[32minfo\u001b[39m","message":"{\"method\":\"GET\",\"url\":\"/api/v1/profile/me\",\"status\":\"200\",\"responseTime\":\"192.540\"}","timestamp":"2025-07-06T18:21:04.370Z"}
+{"level":"\u001b[32minfo\u001b[39m","message":"{\"method\":\"GET\",\"url\":\"/api/v1/files\",\"status\":\"200\",\"responseTime\":\"186.220\"}","timestamp":"2025-07-06T18:21:04.895Z"}
+{"level":"\u001b[32minfo\u001b[39m","message":"{\"method\":\"GET\",\"url\":\"/api/v1/profile/me\",\"status\":\"200\",\"responseTime\":\"182.761\"}","timestamp":"2025-07-06T18:21:09.520Z"}
+{"level":"\u001b[32minfo\u001b[39m","message":"{\"method\":\"GET\",\"url\":\"/api/v1/profile/me\",\"status\":\"200\",\"responseTime\":\"183.330\"}","timestamp":"2025-07-06T18:21:10.139Z"}
+{"level":"\u001b[32minfo\u001b[39m","message":"{\"method\":\"GET\",\"url\":\"/uploads/Porfile.jpg\",\"status\":\"404\",\"responseTime\":\"13.497\"}","timestamp":"2025-07-06T18:21:10.237Z"}
+{"level":"\u001b[32minfo\u001b[39m","message":"{\"method\":\"PATCH\",\"url\":\"/api/v1/profile/update\",\"status\":\"200\",\"responseTime\":\"704.577\"}","timestamp":"2025-07-06T18:21:28.757Z"}
+{"level":"\u001b[32minfo\u001b[39m","message":"{\"method\":\"GET\",\"url\":\"/api/v1/profile/me\",\"status\":\"200\",\"responseTime\":\"185.019\"}","timestamp":"2025-07-06T18:21:31.268Z"}
+{"level":"\u001b[32minfo\u001b[39m","message":"{\"method\":\"GET\",\"url\":\"/api/v1/profile/me\",\"status\":\"200\",\"responseTime\":\"182.381\"}","timestamp":"2025-07-06T18:21:31.781Z"}
+{"level":"\u001b[32minfo\u001b[39m","message":"{\"method\":\"GET\",\"url\":\"/api/v1/profile/me\",\"status\":\"200\",\"responseTime\":\"181.045\"}","timestamp":"2025-07-06T18:21:34.844Z"}
+{"level":"\u001b[32minfo\u001b[39m","message":"{\"method\":\"GET\",\"url\":\"/api/v1/files\",\"status\":\"200\",\"responseTime\":\"181.374\"}","timestamp":"2025-07-06T18:21:35.389Z"}
+{"level":"\u001b[32minfo\u001b[39m","message":"{\"method\":\"DELETE\",\"url\":\"/api/v1/files/permanent/686abd648bb934b9cc1611b2\",\"status\":\"500\",\"responseTime\":\"317.086\"}","timestamp":"2025-07-06T18:21:41.482Z"}
