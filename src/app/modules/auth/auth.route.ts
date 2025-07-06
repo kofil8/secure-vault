@@ -3,13 +3,14 @@ import validateRequest from '../../middlewares/validateRequest';
 import { authValidation } from './auth.validation';
 import { AuthControllers } from './auth.controller';
 import { auth } from '../../middlewares/auth';
-
+import { loginLimiter } from '../../middlewares/rateLimit';
 
 const router = express.Router();
 
 // Existing login/logout/refresh routes
 router.post(
   '/login',
+  loginLimiter,
   validateRequest(authValidation.loginUser),
   AuthControllers.loginUser,
 );

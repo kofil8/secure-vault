@@ -10,16 +10,23 @@ import GlobalErrorHandler from './app/middlewares/globalErrorHandler';
 import { defaultLimiter } from './app/middlewares/rateLimit';
 import router from './app/routes';
 import logger from './app/utils/logger';
+import helmet from 'helmet';
 
 const app: Application = express();
 const morganFormat = ':method :url :status :response-time ms';
 
 const corsOptions = {
-  origin: ['*'],
+  origin: ['http://localhost:3000'],
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
   allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true,
 };
+app.use(
+  helmet({
+    contentSecurityPolicy: false,
+    crossOriginResourcePolicy: { policy: 'cross-origin' },
+  }),
+);
 
 // 🔧 Middleware setup
 app.use(express.json());

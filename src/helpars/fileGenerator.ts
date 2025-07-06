@@ -36,4 +36,8 @@ const generateBlankPdf = (): Buffer => {
   return Buffer.concat(buffers);
 };
 
-export { generateBlankDocx, generateBlankXlsx, generateBlankPdf };
+export const fileGenerator = {
+  generateBlankDocx,
+  generateBlankXlsx,
+  generateBlankPdf,
+};

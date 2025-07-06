@@ -6,9 +6,6 @@ dotenv.config({ path: path.join(process.cwd(), '.env') });
 export default {
   database_url: process.env.DATABASE_URL,
   env: process.env.NODE_ENV,
-  box_api_client_id: process.env.BOX_API_CLENT_ID,
-  box_api_client_secret: process.env.BOX_API_CLENT_SECRET,
-  google_redirect_uri: process.env.GOOGLE_REDIRECT_URI,
   frontend_url: process.env.FRONTEND_URL,
   backend_file_url: process.env.BACKEND_FILE_URL,
   backend_base_url: process.env.BACKEND_BASE_URL,
