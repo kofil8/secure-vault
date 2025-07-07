@@ -1,36 +1,10 @@
 import { Prisma } from '@prisma/client';
-import ExcelJS from 'exceljs';
 import fs from 'fs/promises';
 import path from 'path';
 import ApiError from '../../errors/ApiError';
 import prisma from '../../helpers/prisma';
 import { IPaginationOptions } from '../../interfaces/paginations';
 import { calculatePagination } from '../../utils/calculatePagination';
-
-/**
- * Excel Data Structures
- */
-interface ExcelRow {
-  number: number;
-  values: any[];
-}
-
-interface ExcelSheet {
-  id: string;
-  name: string;
-  rows: ExcelRow[];
-  properties?: ExcelJS.WorksheetProperties;
-}
-
-interface ExcelWorkbook {
-  id: string;
-  fileName: string;
-  fileType: string;
-  version: number;
-  lastSavedAt?: Date | null;
-  updatedAt: Date;
-  sheets: ExcelSheet[];
-}
 
 const createFile = async (data: Prisma.FileCreateInput) => {
   const file = await prisma.file.create({ data });
@@ -149,19 +123,27 @@ const restoreMultipleFiles = async (ids: string[]) => {
   return result.count;
 };
 
-const hardDeleteFile = async (id: string) => {
+const deleteFilePermanently = async (id: string) => {
+  // 1. Find file
   const file = await prisma.file.findUnique({ where: { id } });
   if (!file) throw new ApiError(404, 'File not found');
 
-  await prisma.file.delete({ where: { id } });
+  // 2. Resolve full path
+  const absolutePath = path.isAbsolute(file.filePath!)
+    ? file.filePath!
+    : path.join(process.cwd(), file.filePath!);
 
-  const filePath = path.join(process.cwd(), file.filePath as string);
+  // 3. Delete from disk
   try {
-    await fs.unlink(filePath);
+    await fs.access(absolutePath); // Confirm existence
+    await fs.unlink(absolutePath); // Delete
   } catch (err) {
-    console.error('Error deleting file:', err);
+    console.error('⚠️ Error deleting file:', err);
     throw new ApiError(500, 'Failed to delete file from system');
   }
+
+  // 4. Delete from DB
+  await prisma.file.delete({ where: { id } });
 
   return file;
 };
@@ -204,127 +186,6 @@ const makeFavourite = async (id: string) => {
   return file;
 };
 
-// EXCEL-SPECIFIC METHODS
-
-const getExcelData = async (fileId: string): Promise<ExcelWorkbook> => {
-  const file = await getFileById(fileId);
-
-  // Verify file exists on disk
-  try {
-    await fs.access(file.filePath as string);
-  } catch {
-    throw new ApiError(404, 'Excel file not found on server');
-  }
-
-  const workbook = new ExcelJS.Workbook();
-
-  try {
-    await workbook.xlsx.readFile(file.filePath as string);
-  } catch (error) {
-    throw new ApiError(500, 'Failed to read Excel file');
-  }
-
-  const sheets: ExcelSheet[] = workbook.worksheets.map((worksheet) => {
-    const rows: ExcelRow[] = [];
-    worksheet.eachRow({ includeEmpty: true }, (row, rowNumber) => {
-      rows.push({
-        number: rowNumber,
-        values: row.values,
-      });
-    });
-
-    // Ensure at least one row exists
-    if (rows.length === 0) {
-      rows.push({ number: 1, values: [] });
-    }
-
-    return {
-      id: worksheet.id.toString(),
-      name: worksheet.name,
-      rows,
-      properties: worksheet.properties,
-    };
-  });
-
-  // Ensure at least one sheet exists
-  if (sheets.length === 0) {
-    sheets.push({
-      id: 'default-sheet',
-      name: 'Sheet1',
-      rows: [{ number: 1, values: [] }],
-      properties: {},
-    });
-  }
-
-  return {
-    id: file.id,
-    fileName: file.fileName,
-    fileType: file.fileType,
-    version: file.version || 1,
-    lastSavedAt: file.lastSavedAt || null,
-    updatedAt: file.updatedAt,
-    sheets,
-  };
-};
-
-const updateExcelFile = async (
-  fileId: string,
-  updates: { sheetUpdates: Array<{ sheetId: string; data: any[][] }> },
-  userId: string,
-) => {
-  const file = await getFileById(fileId);
-
-  // Verify file exists on disk
-  try {
-    await fs.access(file.filePath as string);
-  } catch {
-    throw new ApiError(404, 'Excel file not found on server');
-  }
-
-  const workbook = new ExcelJS.Workbook();
-  const filePath = path.join(process.cwd(), file.filePath as string);
-
-  try {
-    await workbook.xlsx.readFile(filePath);
-
-    updates.sheetUpdates.forEach((sheetUpdate) => {
-      const worksheet = workbook.getWorksheet(sheetUpdate.sheetId);
-      if (!worksheet) {
-        throw new ApiError(404, `Worksheet ${sheetUpdate.sheetId} not found`);
-      }
-
-      // Clear existing data
-      worksheet.spliceRows(1, worksheet.rowCount);
-
-      // Add updated data
-      sheetUpdate.data.forEach((row) => {
-        if (row && row.length > 0) {
-          worksheet.addRow(row);
-        }
-      });
-    });
-
-    await workbook.xlsx.writeFile(filePath);
-
-    const stats = await fs.stat(filePath);
-    const updatedFile = await prisma.file.update({
-      where: { id: fileId },
-      data: {
-        lastSavedAt: new Date(),
-        lastSavedById: userId,
-        fileSize: stats.size,
-        version: { increment: 1 },
-      },
-    });
-
-    return updatedFile;
-  } catch (error) {
-    console.error('Excel update error:', error);
-    if (error instanceof ApiError) throw error;
-    throw new ApiError(500, 'Failed to update Excel file');
-  }
-};
-
 export const fileService = {
   createFile,
   createMultipleFiles,
@@ -334,9 +195,7 @@ export const fileService = {
   deleteFile,
   restoreFile,
   restoreMultipleFiles,
-  hardDeleteFile,
+  deleteFilePermanently,
   updateFile,
   makeFavourite,
-  getExcelData,
-  updateExcelFile,
 };

@@ -2,25 +2,23 @@ import { Request, Response } from 'express';
 import fs from 'fs/promises';
 import httpStatus from 'http-status';
 import path from 'path';
+import config from '../../../config';
+import { fileGenerator } from '../../../helpars/fileGenerator';
 import ApiError from '../../errors/ApiError';
+import prisma from '../../helpers/prisma';
 import catchAsync from '../../utils/catchAsync';
+import { resolveFilePath } from '../../utils/filePath';
 import sendResponse from '../../utils/sendResponse';
 import { fileService } from './file.service';
 
-import config from '../../../config';
-import { fileGenerator } from '../../../helpars/fileGenerator';
-import prisma from '../../helpers/prisma';
-
+// 🔽 Upload & Create
 const createFile = catchAsync(async (req: Request, res: Response) => {
   const userId = req.user?.id;
   const uploadedFiles: Express.Multer.File[] = [];
 
-  // Handle file fields uploaded in the request
   const filesField = req.files as
     | { [key: string]: Express.Multer.File[] }
     | undefined;
-
-  // Collect files from request
   if (filesField) {
     if (Array.isArray(filesField['file']))
       uploadedFiles.push(...filesField['file']);
@@ -35,13 +33,15 @@ const createFile = catchAsync(async (req: Request, res: Response) => {
         .basename(file.originalname, ext)
         .replace(/\s+/g, '-');
       const cleanFileName = `${baseName}${ext}`;
+      const relativePath = `uploads/${file.filename}`;
+      const fullUrl = `${config.backend_base_url}/${relativePath}`;
 
       return {
         fileName: cleanFileName,
         fileType: getFileType(file.mimetype),
         fileSize: file.size,
-        fileUrl: `${config.backend_base_url}/uploads/${file.filename}`,
-        filePath: file.path,
+        fileUrl: fullUrl,
+        filePath: relativePath,
         version: 1,
         user: { connect: { id: userId } },
       };
@@ -71,12 +71,15 @@ const createFile = catchAsync(async (req: Request, res: Response) => {
 
   if (uploadedFiles.length === 1) {
     const file = uploadedFiles[0];
+    const relativePath = `uploads/${file.filename}`;
+    const fileUrl = `${config.backend_base_url}/${relativePath}`;
+
     const payload = {
       fileName: file.filename,
       fileType: getFileType(file.mimetype),
       fileSize: file.size,
-      fileUrl: `${config.backend_base_url}/uploads/${file.filename}`,
-      filePath: file.path,
+      fileUrl,
+      filePath: relativePath,
       version: 1,
       user: { connect: { id: userId } },
     };
@@ -102,7 +105,43 @@ const createFile = catchAsync(async (req: Request, res: Response) => {
   throw new Error('No file uploaded');
 });
 
-// Helper function to determine file type
+const updateFileBlob = catchAsync(async (req: Request, res: Response) => {
+  const { fileId } = req.params;
+  const file = await fileService.getFileById(fileId);
+
+  if (!file || !file.filePath) {
+    throw new ApiError(httpStatus.NOT_FOUND, 'File not found');
+  }
+
+  const uploaded = req.file;
+  if (!uploaded) {
+    throw new ApiError(httpStatus.BAD_REQUEST, 'No file uploaded');
+  }
+
+  const absolutePath = path.isAbsolute(file.filePath)
+    ? file.filePath
+    : path.join(process.cwd(), file.filePath);
+
+  await fs.writeFile(absolutePath, await fs.readFile(uploaded.path));
+  await fs.unlink(uploaded.path);
+
+  const stats = await fs.stat(absolutePath);
+
+  const updated = await fileService.updateFile(fileId, {
+    fileSize: stats.size,
+    version: file.version + 1,
+    lastSavedAt: new Date(),
+  });
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'File updated successfully',
+    data: updated,
+  });
+});
+
+// 🔽 Helpers
 const getFileType = (mimeType: string) => {
   if (mimeType.includes('pdf')) return 'pdf';
   if (mimeType.includes('msword') || mimeType.includes('wordprocessingml'))
@@ -116,6 +155,7 @@ const getFileType = (mimeType: string) => {
   throw new Error(`Unsupported file type: ${mimeType}`);
 };
 
+// 🔽 Retrieve
 const getAllFiles = catchAsync(async (req: Request, res: Response) => {
   const files = await fileService.getAllFiles(req.query);
   sendResponse(res, {
@@ -147,6 +187,18 @@ const getFilesByUserId = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+// 🔽 Update
+const updateFile = catchAsync(async (req: Request, res: Response) => {
+  const updated = await fileService.updateFile(req.params.fileId, req.body);
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'File updated successfully',
+    data: updated,
+  });
+});
+
+// 🔽 Delete
 const deleteFile = catchAsync(async (req: Request, res: Response) => {
   const file = await fileService.deleteFile(req.params.fileId);
   sendResponse(res, {
@@ -157,6 +209,34 @@ const deleteFile = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+const hardDeleteFile = catchAsync(async (req: Request, res: Response) => {
+  const { fileId } = req.params;
+
+  // 1. Get file
+  const file = await fileService.getFileById(fileId);
+  if (!file || !file.filePath) {
+    throw new ApiError(httpStatus.NOT_FOUND, 'File not found');
+  }
+
+  // 2. Log and resolve path (for debug/logging)
+  const absolutePath = path.isAbsolute(file.filePath)
+    ? file.filePath
+    : path.join(process.cwd(), file.filePath);
+  console.log('📁 [Resolved Path]:', absolutePath);
+
+  // 3. Only call service — it handles DB and file deletion
+  await fileService.deleteFilePermanently(fileId);
+
+  // 4. Respond
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'File permanently deleted',
+    data: null,
+  });
+});
+
+// 🔽 Restore
 const restoreFile = catchAsync(async (req: Request, res: Response) => {
   const file = await fileService.restoreFile(req.params.fileId);
   sendResponse(res, {
@@ -178,27 +258,7 @@ const restoreMultipleFiles = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
-const hardDeleteFile = catchAsync(async (req: Request, res: Response) => {
-  const { fileId } = req.params;
-  const file = await fileService.hardDeleteFile(fileId);
-  sendResponse(res, {
-    statusCode: 200,
-    success: true,
-    message: 'File permanently deleted',
-    data: null,
-  });
-});
-
-const updateFile = catchAsync(async (req: Request, res: Response) => {
-  const updated = await fileService.updateFile(req.params.fileId, req.body);
-  sendResponse(res, {
-    statusCode: httpStatus.OK,
-    success: true,
-    message: 'File updated successfully',
-    data: updated,
-  });
-});
-
+// 🔽 Favorites
 const makeFavourite = catchAsync(async (req: Request, res: Response) => {
   const result = await fileService.makeFavourite(req.params.fileId);
   sendResponse(res, {
@@ -206,25 +266,21 @@ const makeFavourite = catchAsync(async (req: Request, res: Response) => {
     success: true,
     message: result.isFavorite
       ? 'File marked as favourite'
-      : 'File removed from favourites',
+      : 'Removed from favourites',
     data: result,
   });
 });
 
+// 🔽 Blank Files
 const createBlankFile = catchAsync(async (req: Request, res: Response) => {
   const { type } = req.params as { type: 'docx' | 'xlsx' | 'pdf' };
   const user = req.user as { id: string };
 
   let buffer: Buffer;
-  if (type === 'docx') {
-    buffer = await fileGenerator.generateBlankDocx();
-  } else if (type === 'xlsx') {
-    buffer = await fileGenerator.generateBlankXlsx();
-  } else if (type === 'pdf') {
-    buffer = fileGenerator.generateBlankPdf();
-  } else {
-    throw new ApiError(httpStatus.BAD_REQUEST, 'Invalid file type');
-  }
+  if (type === 'docx') buffer = await fileGenerator.generateBlankDocx();
+  else if (type === 'xlsx') buffer = await fileGenerator.generateBlankXlsx();
+  else if (type === 'pdf') buffer = fileGenerator.generateBlankPdf();
+  else throw new ApiError(httpStatus.BAD_REQUEST, 'Invalid file type');
 
   const file = await prisma.file.create({
     data: {
@@ -248,7 +304,7 @@ const createBlankFile = catchAsync(async (req: Request, res: Response) => {
     where: { id: file.id },
     data: {
       fileUrl: `${config.backend_base_url}/uploads/${file.id}.${type}`,
-      filePath,
+      filePath: `uploads/${file.id}.${type}`,
     },
   });
 
@@ -260,48 +316,20 @@ const createBlankFile = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
-const downloadFile = catchAsync(async (req, res) => {
+// 🔽 Download
+const downloadFile = catchAsync(async (req: Request, res: Response) => {
   const { fileId } = req.params;
   const file = await fileService.getFileById(fileId);
-
-  if (!file || !file.filePath) {
+  if (!file || !file.filePath)
     throw new ApiError(httpStatus.NOT_FOUND, 'File not found');
-  }
 
-  res.download(file.filePath, file.fileName);
+  const absolutePath = resolveFilePath(file.filePath);
+  res.download(absolutePath, file.fileName);
 });
 
-const getExcelData = catchAsync(async (req: Request, res: Response) => {
-  const { fileId } = req.params;
-  const excelData = await fileService.getExcelData(fileId);
-  sendResponse(res, {
-    statusCode: httpStatus.OK,
-    success: true,
-    message: 'Excel data retrieved successfully',
-    data: excelData,
-  });
-});
-
-const updateExcelData = catchAsync(async (req: Request, res: Response) => {
-  const { fileId } = req.params;
-  const { sheets } = req.body;
-  const userId = req.user?.id;
-
-  const updatedFile = await fileService.updateExcelFile(
-    fileId,
-    { sheets },
-    userId,
-  );
-
-  sendResponse(res, {
-    statusCode: httpStatus.OK,
-    success: true,
-    message: 'Excel file updated successfully',
-    data: updatedFile,
-  });
-});
-
+// 🔽 Export All
 export const fileController = {
+  updateFileBlob,
   createFile,
   getAllFiles,
   getFileById,
@@ -314,6 +342,4 @@ export const fileController = {
   makeFavourite,
   createBlankFile,
   downloadFile,
-  getExcelData,
-  updateExcelData,
 };

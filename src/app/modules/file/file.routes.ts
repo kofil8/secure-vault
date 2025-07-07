@@ -18,6 +18,12 @@ router.post(
   fileController.createFile,
 );
 
+router.patch(
+  '/content/:fileId',
+  upload.single('file'),
+  fileController.updateFileBlob,
+);
+
 // File Management Routes
 router.get('/', auth(), fileController.getAllFiles);
 router.get('/user/:userId', auth(), fileController.getFilesByUserId);
@@ -46,9 +52,5 @@ router.post('/create/:type', auth(), fileController.createBlankFile);
 
 // File Download
 router.get('/download/:fileId', auth(), fileController.downloadFile);
-
-// Excel File Editing Routes
-router.get('/excel/:fileId', fileController.getExcelData);
-router.put('/excel/:fileId', fileController.updateExcelData);
 
 export const fileRoutes = router;
