@@ -1,11 +1,14 @@
 import httpStatus from 'http-status';
+import { Request, Response, RequestHandler } from 'express';
 import catchAsync from '../../utils/catchAsync';
 import sendResponse from '../../utils/sendResponse';
 import { AuthServices } from './auth.service';
-import { Request, RequestHandler, Response } from 'express';
+import prisma from '../../helpers/prisma';
+import ApiError from '../../errors/ApiError';
 
 const isProd = process.env.NODE_ENV === 'production';
 
+// Cookie config for login/set
 const cookieOptions = {
   httpOnly: true,
   secure: isProd,
@@ -14,6 +17,15 @@ const cookieOptions = {
   path: '/',
 };
 
+// Cookie config for clear (no maxAge - prevents deprecation)
+const clearCookieOptions = {
+  httpOnly: true,
+  secure: isProd,
+  sameSite: isProd ? ('none' as const) : ('lax' as const),
+  path: '/',
+};
+
+// ----------------------------- LOGIN -----------------------------
 const loginUser: RequestHandler = catchAsync(async (req, res) => {
   const { email, password } = req.body;
 
@@ -30,12 +42,13 @@ const loginUser: RequestHandler = catchAsync(async (req, res) => {
   });
 });
 
+// ----------------------------- LOGOUT -----------------------------
 const logoutUser = catchAsync(async (req: Request, res: Response) => {
   const id = req.user?.id as string;
   await AuthServices.logoutUser(id);
 
-  res.clearCookie('accessToken', cookieOptions);
-  res.clearCookie('refreshToken', cookieOptions);
+  res.clearCookie('accessToken', clearCookieOptions);
+  res.clearCookie('refreshToken', clearCookieOptions);
 
   sendResponse(res, {
     statusCode: httpStatus.OK,
@@ -45,8 +58,10 @@ const logoutUser = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+// ----------------------------- REFRESH TOKEN -----------------------------
 const refreshToken = catchAsync(async (req, res) => {
   const authHeader = req.headers.authorization;
+
   if (!authHeader?.startsWith('Bearer ')) {
     return res.status(httpStatus.UNAUTHORIZED).json({
       success: false,
@@ -68,12 +83,13 @@ const refreshToken = catchAsync(async (req, res) => {
   });
 });
 
-// New: Forgot Password - Return security questions if user exists
+// ----------------------------- FORGOT PASSWORD -----------------------------
 const forgotPassword = catchAsync(async (req, res) => {
   const { email } = req.body;
 
-  const exists = await AuthServices.doesUserExist(email);
-  if (!exists) {
+  const user = await prisma.user.findUnique({ where: { email } });
+
+  if (!user) {
     return res.status(httpStatus.NOT_FOUND).json({
       success: false,
       message: 'Email not found',
@@ -86,15 +102,15 @@ const forgotPassword = catchAsync(async (req, res) => {
     message: 'Security questions retrieved successfully',
     data: {
       questions: [
-        'What is your pet name?',
-        'How many pets you have?',
-        'What is your elder brother name?',
+        user.securityQuestion1,
+        user.securityQuestion2,
+        user.securityQuestion3,
       ],
     },
   });
 });
 
-// New: Verify security answers and return token
+// ----------------------------- VERIFY SECURITY ANSWERS -----------------------------
 const verifySecurityAnswers = catchAsync(async (req, res) => {
   const { email, answers } = req.body;
   const token = await AuthServices.verifyAnswersAndCreateToken(email, answers);
@@ -107,10 +123,11 @@ const verifySecurityAnswers = catchAsync(async (req, res) => {
   });
 });
 
-// New: Reset password
+// ----------------------------- RESET PASSWORD -----------------------------
 const resetPassword = catchAsync(async (req, res) => {
   const userId = req.user?.id as string;
   const { newPassword } = req.body;
+
   await AuthServices.resetPassword(userId, newPassword);
 
   sendResponse(res, {
@@ -121,34 +138,47 @@ const resetPassword = catchAsync(async (req, res) => {
   });
 });
 
-// New: Set/update security answers (protected)
+// ----------------------------- SET SECURITY QUESTIONS -----------------------------
 const setSecurityAnswers = catchAsync(async (req, res) => {
   const userId = req.user?.id as string;
-  const { answers } = req.body;
+  const { questions, answers } = req.body;
 
-  await AuthServices.setSecurityAnswers(userId, answers);
+  await AuthServices.setSecurityAnswers(userId, questions, answers);
 
   sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
-    message: 'Security answers set successfully',
+    message: 'Security questions and answers set successfully',
     data: null,
   });
 });
 
-// New: Get security answer status (protected)
+// ----------------------------- GET SECURITY STATUS -----------------------------
 const getSecurityStatus = catchAsync(async (req, res) => {
   const userId = req.user?.id as string;
-  const status = await AuthServices.getSecurityStatus(userId);
+  const user = await prisma.user.findUnique({ where: { id: userId } });
+
+  if (!user) throw new ApiError(httpStatus.NOT_FOUND, 'User not found');
 
   sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
     message: 'Security answer status retrieved successfully',
-    data: status,
+    data: {
+      questions: [
+        user.securityQuestion1 ?? '',
+        user.securityQuestion2 ?? '',
+        user.securityQuestion3 ?? '',
+      ],
+      isSet:
+        !!user.securityAnswer1Hash &&
+        !!user.securityAnswer2Hash &&
+        !!user.securityAnswer3Hash,
+    },
   });
 });
 
+// ----------------------------- EXPORT CONTROLLERS -----------------------------
 export const AuthControllers = {
   loginUser,
   logoutUser,

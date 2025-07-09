@@ -178,10 +178,10 @@ const resetPassword = async (userId: string, newPassword: string) => {
 // Set or update security answers for authenticated user
 const setSecurityAnswers = async (
   userId: string,
+  questions: [string, string, string],
   answers: [string, string, string],
 ) => {
   const normalizedAnswers = answers.map(normalizeAnswer);
-
   const hashedAnswers = await Promise.all(
     normalizedAnswers.map((ans) => bcrypt.hash(ans, SALT_ROUNDS)),
   );
@@ -189,6 +189,9 @@ const setSecurityAnswers = async (
   await prisma.user.update({
     where: { id: userId },
     data: {
+      securityQuestion1: questions[0],
+      securityQuestion2: questions[1],
+      securityQuestion3: questions[2],
       securityAnswer1Hash: hashedAnswers[0],
       securityAnswer2Hash: hashedAnswers[1],
       securityAnswer3Hash: hashedAnswers[2],

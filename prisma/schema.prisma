@@ -16,7 +16,10 @@ model User {
   profileImage        String?
   bio                 String?
   refreshToken        String?
-  securityAnswer1Hash String? // normalized + hashed
+  securityQuestion1   String?
+  securityQuestion2   String?
+  securityQuestion3   String?
+  securityAnswer1Hash String?
   securityAnswer2Hash String?
   securityAnswer3Hash String?
   createdAt           DateTime @default(now())

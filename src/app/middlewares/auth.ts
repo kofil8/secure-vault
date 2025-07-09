@@ -28,32 +28,45 @@ export const auth = () => {
     next: NextFunction,
   ): Promise<void> => {
     try {
-      // 1. Get token from Authorization header
-      const token = extractTokenFromHeader(req);
+      // ✅ 1. Get token from header or cookie
+      const token = extractToken(req);
       if (!token) {
         throw new ApiError(
           httpStatus.UNAUTHORIZED,
-          'Authorization token required',
+          'Authorization token is required',
         );
       }
 
-      // 2. Verify token
-      const decoded = verifyToken(token) as JwtPayload & {
+      // ✅ 2. Verify token
+      const decoded = jwt.verify(
+        token,
+        config.jwt.jwt_secret as Secret,
+      ) as JwtPayload & {
         id: string;
         email: string;
         name: string;
       };
 
-      // 3. Validate token payload
-      validateTokenPayload(decoded);
-
-      // 4. Verify user exists in database
-      const user = await verifyUserExists(decoded.id);
-      if (!user) {
-        throw new ApiError(httpStatus.UNAUTHORIZED, 'User no longer exists');
+      // ✅ 3. Validate payload
+      if (!decoded?.id || !decoded?.email || !decoded?.name) {
+        throw new ApiError(httpStatus.UNAUTHORIZED, 'Invalid token payload');
       }
 
-      // 5. Attach user to request
+      // ✅ 4. Ensure user exists
+      const user = await prisma.user.findUnique({
+        where: { id: decoded.id },
+        select: {
+          id: true,
+          email: true,
+          name: true,
+        },
+      });
+
+      if (!user) {
+        throw new ApiError(httpStatus.UNAUTHORIZED, 'User not found');
+      }
+
+      // ✅ 5. Attach to request
       req.user = {
         id: decoded.id,
         email: decoded.email,
@@ -67,36 +80,22 @@ export const auth = () => {
   };
 };
 
-// Helper functions for better separation of concerns
-const extractTokenFromHeader = (req: Request): string | null => {
+// 🔍 Check both Authorization header and cookies
+const extractToken = (req: Request): string | null => {
   const authHeader = req.headers.authorization;
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return null;
+  if (authHeader?.startsWith('Bearer ')) {
+    return authHeader.split(' ')[1];
   }
-  return authHeader.split(' ')[1];
-};
 
-const verifyToken = (token: string): JwtPayload => {
-  return jwt.verify(token, config.jwt.jwt_secret as Secret) as JwtPayload;
-};
-
-const validateTokenPayload = (decoded: JwtPayload): void => {
-  if (!decoded?.id || !decoded?.email || !decoded?.name) {
-    throw new ApiError(httpStatus.UNAUTHORIZED, 'Invalid token payload');
+  // ✅ Cookie-based token
+  if (req.cookies?.accessToken) {
+    return req.cookies.accessToken;
   }
+
+  return null;
 };
 
-const verifyUserExists = async (userId: string) => {
-  return await prisma.user.findUnique({
-    where: { id: userId },
-    select: {
-      id: true,
-      email: true,
-      name: true,
-    },
-  });
-};
-
+// ⚠️ Handle common JWT errors
 const handleAuthError = (error: unknown, next: NextFunction): void => {
   if (error instanceof TokenExpiredError) {
     return next(new ApiError(httpStatus.UNAUTHORIZED, 'Token expired'));
